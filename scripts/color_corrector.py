@@ -9,6 +9,7 @@ from cv2 import aruco
 #generate ArUco 
 #https://pyimagesearch.com/2020/12/14/generating-aruco-markers-with-opencv-and-python/
 
+#https://jephraim-manansala.medium.com/image-processing-with-python-color-correction-using-white-balancing-6c6c749886de
 def find_color_card(image):
 	arucoDict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_ARUCO_ORIGINAL)
 	arucoParams = cv2.aruco.DetectorParameters_create()
