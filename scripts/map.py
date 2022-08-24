@@ -54,7 +54,7 @@ class Map():
 
 if __name__ == '__main__':
     rospy.init_node("map")
-    mav = MAV()
+    mav = MAV2()
     map = Map(mav)
     map.createCSV()
     for i in range(100):
