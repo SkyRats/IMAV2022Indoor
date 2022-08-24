@@ -24,7 +24,7 @@ class Map():
         return("1")
     
     def addtoCSV(self, co2, temp):
-        data = [mav.pose.x, mav.pose.y, co2, temp]
+        data = [mav.drone_pose.pose.position.x, mav.drone_pose.pose.position.y, co2, temp]
         with open('/home/gabiyuri/skyrats_ws2/src/indoor22/auto.csv', 'a', encoding='UTF8') as f:
             writer = csv.writer(f)
             writer.writerow(data)
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     map = Map(mav)
     map.createCSV()
     for i in range(100):
-        co2 = random.randint(400, 410)
-        temp = random.randint(20, 40)
+        co2 = CSS().retornaValorCO2()
+        dist, temp = US100().medicaoUS100()
         map.addtoCSV(co2, temp)
     map.createGraph()
