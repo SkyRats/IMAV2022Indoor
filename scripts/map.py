@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import rospy
-from mavbase.MAV import MAV
+from mavbase2.MAV2 import MAV2
 from IndoorSensors import CSS, US100
 
 from mpl_toolkits.mplot3d.axes3d import get_test_data
