@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 import numpy as np
-import rclpy
+import rospy
 import time
 import sys
 import cv2
 import os
-sys.path.insert(0,'/home/' + os.environ["USER"] + '/skyrats_ws2/src/mavbase2')
-from MAV2 import MAV2
+from mavbase2.MAV2 import MAV2
 from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float64
-from rclpy.node import Node
-from rclpy import qos
+
 
    
 HEIGHT = 1.2
@@ -23,12 +21,11 @@ VEL = 0.7
 ROWS = 12
 TOL = 0.5
 
-class trajectory(Node):
+class trajectory():
     def __init__(self, mav):
-        super().__init__('mav')
         self.mav = mav
-        self.laser_sub = self.create_subscription(LaserScan, '/laser/scan', self.laser_callback, qos.qos_profile_sensor_data)
-        self.compass_sub = self.create_subscription(Float64, '/mavros/global_position/compass_hdg', self.compass_callback, qos.qos_profile_sensor_data)
+        #self.laser_sub = rospy.Subscriber(LaserScan, '/laser/scan', self.laser_callback)
+        #self.compass_sub = rospy.Subscriber(Float64, '/mavros/global_position/compass_hdg', self.compass_callback)
 
     def laser_callback(self, data):
         self.sonar = data.ranges[0]
@@ -38,62 +35,58 @@ class trajectory(Node):
 
     def fix_trajectory(self):
         self.mav.takeoff(2)
-        self.mav.go_to_local(0, 0, HEIGHT, yaw = np.pi/2, vel_xy = VEL)
-        self.mav.go_to_local(0, FIRST_GOING, HEIGHT, vel_xy = VEL) 
+        self.mav.go_to_local(0, 0, HEIGHT, yaw = np.pi/2)
+        self.mav.go_to_local(0, FIRST_GOING, HEIGHT) 
 
         going = ROWS/2
         for i in range(int(2*going)):
             if (i < going):
-                self.mav.go_to_local(-ROW_WIDTH, FIRST_GOING + i*ROW_DISTANCE, HEIGHT, vel_xy = VEL)
-                self.mav.go_to_local(-ROW_WIDTH, FIRST_GOING + i*ROW_DISTANCE, HEIGHT, yaw = -np.pi/2, vel_xy = VEL)
+                self.mav.go_to_local(-ROW_WIDTH, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
+                self.mav.go_to_local(-ROW_WIDTH, FIRST_GOING + i*ROW_DISTANCE, HEIGHT, yaw = -np.pi/2)
 
-                self.mav.go_to_local(0, FIRST_GOING + i*ROW_DISTANCE, HEIGHT, vel_xy = VEL)
+                self.mav.go_to_local(0, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
 
                 if(i != going-1):
-                    self.mav.go_to_local(0, FIRST_GOING + i*ROW_DISTANCE, HEIGHT, yaw = np.pi/2, vel_xy = VEL)
-                    self.mav.go_to_local(0, FIRST_GOING + (i+1)*ROW_DISTANCE, HEIGHT, vel_xy = VEL)
+                    self.mav.go_to_local(0, FIRST_GOING + i*ROW_DISTANCE, HEIGHT, yaw = np.pi/2)
+                    self.mav.go_to_local(0, FIRST_GOING + (i+1)*ROW_DISTANCE, HEIGHT)
                 else:
-                    self.mav.go_to_local(DISTANCE_DRONES, FIRST_GOING + i*ROW_DISTANCE, HEIGHT, vel_xy = VEL)
+                    self.mav.go_to_local(DISTANCE_DRONES, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
 
             else:
-                self.mav.go_to_local(DISTANCE_DRONES + ROW_WIDTH, FIRST_GOING + (2*going-(i+1))*ROW_DISTANCE, HEIGHT, vel_xy = VEL)
-                self.mav.go_to_local(DISTANCE_DRONES + ROW_WIDTH, FIRST_GOING + (2*going-(i+1))*ROW_DISTANCE, HEIGHT, yaw = np.pi/2, vel_xy = VEL)
+                self.mav.go_to_local(DISTANCE_DRONES + ROW_WIDTH, FIRST_GOING + (2*going-(i+1))*ROW_DISTANCE, HEIGHT)
+                self.mav.go_to_local(DISTANCE_DRONES + ROW_WIDTH, FIRST_GOING + (2*going-(i+1))*ROW_DISTANCE, HEIGHT, yaw = np.pi/2)
                 
-                self.mav.go_to_local(DISTANCE_DRONES, FIRST_GOING + (2*going-(i+1))*ROW_DISTANCE, HEIGHT, vel_xy = VEL)
-                self.mav.go_to_local(DISTANCE_DRONES, FIRST_GOING + (2*going-(i+1))*ROW_DISTANCE, HEIGHT, yaw = -np.pi/2, vel_xy = VEL)
+                self.mav.go_to_local(DISTANCE_DRONES, FIRST_GOING + (2*going-(i+1))*ROW_DISTANCE, HEIGHT)
+                self.mav.go_to_local(DISTANCE_DRONES, FIRST_GOING + (2*going-(i+1))*ROW_DISTANCE, HEIGHT, yaw = -np.pi/2)
 
                 if(i != 2*going-1):
-                    self.mav.go_to_local(DISTANCE_DRONES, FIRST_GOING + ((2*going-(i+2))*ROW_DISTANCE), HEIGHT, vel_xy = VEL)
+                    self.mav.go_to_local(DISTANCE_DRONES, FIRST_GOING + ((2*going-(i+2))*ROW_DISTANCE), HEIGHT)
                 else:
-                    self.mav.go_to_local(DISTANCE_DRONES, 0, HEIGHT, vel_xy = VEL)
+                    self.mav.go_to_local(DISTANCE_DRONES, 0, HEIGHT)
             
         self.mav.land()
 
 
     def sonar_trajectory(self):
         print("Iniciando trajetoria com sonar e centralizacao nos vermelhos!")
-        for k in range(30):
-            rclpy.spin_once(self)
 
         self.mav.takeoff(HEIGHT)
-        self.mav.go_to_local(0, 0, HEIGHT, yaw = np.pi/2, vel_xy = VEL, TOL = 0.05)
-        self.mav.go_to_local(0, FIRST_GOING, HEIGHT, vel_xy = VEL) 
+        self.mav.go_to_local(0, 0, HEIGHT, yaw = np.pi/2, TOL = 0.05)
+        self.mav.go_to_local(0, FIRST_GOING, HEIGHT) 
 
         self.going = ROWS/2
         
         for i in range(int(2 * self.going)):
-            rclpy.spin_once(self.mav)
             current_y = self.mav.drone_pose.pose.position.y
 
             if(i < self.going):
                 print("Virando para o corredor da esquerda")
-                self.mav.go_to_local(0, current_y, HEIGHT, vel_xy = VEL, yaw = np.pi, TOL = 0.05) 
+                self.mav.go_to_local(0, current_y, HEIGHT, yaw = np.pi, TOL = 0.05) 
             else:
                 print("Virando para o corredor da direita")
-                self.mav.go_to_local(0, current_y, HEIGHT, vel_xy = VEL, yaw = 0, TOL = 0.05) 
+                self.mav.go_to_local(0, current_y, HEIGHT, yaw = 0, TOL = 0.05) 
             self.align = 0
             while(self.align == 0):
-                rclpy.spin_once(self)
                 print("Centralizando no vermelho")
                 x_goal = self.center_red() 
                 print("PID")
@@ -105,67 +98,51 @@ class trajectory(Node):
 
             current_y = self.mav.drone_pose.pose.position.y            
             if(i < self.going):
-                self.mav.go_to_local(0, current_y, HEIGHT, vel_xy = VEL, yaw = np.pi/2) 
+                self.mav.go_to_local(0, current_y, HEIGHT, yaw = np.pi/2) 
             else:
-                self.mav.go_to_local(0, current_y, HEIGHT, vel_xy = VEL, yaw = -np.pi/2) 
-
-            for j in range(15):
-                rclpy.spin_once(self)   
+                self.mav.go_to_local(0, current_y, HEIGHT, yaw = -np.pi/2) 
 
             while abs(self.sonar - 3) > TOL :
-                rclpy.spin_once(self)
                 if(i < self.going):
                     self.mav.set_vel(-VEL, 0,0)
                 else:
                     self.mav.set_vel(VEL, 0,0)
 
             self.mav.set_vel(0, 0,0)
-            rclpy.spin_once(self.mav)
             current_x = self.mav.drone_pose.pose.position.x
             current_y = self.mav.drone_pose.pose.position.y
             if(i<self.going):
-                self.mav.go_to_local(current_x, current_y, HEIGHT, yaw = -np.pi/2, vel_xy = VEL)
+                self.mav.go_to_local(current_x, current_y, HEIGHT, yaw = -np.pi/2)
 
             else:
-                self.mav.go_to_local(current_x, current_y, HEIGHT, yaw = np.pi/2, vel_xy = VEL)
+                self.mav.go_to_local(current_x, current_y, HEIGHT, yaw = np.pi/2)
 
         
            
                
             while abs(current_x - 0) > TOL :
                 print(current_x)
-                rclpy.spin_once(self.mav)
                 if(i<self.going):
                     self.mav.set_vel(VEL, 0,0)
 
                 else:
                     self.mav.set_vel(-VEL, 0,0)
-                for i in range(15):
-                    rclpy.spin_once(self.mav)
             self.mav.set_vel(0, 0,0)
             
             if (i < self.going-1):
-                self.mav.go_to_local(0, FIRST_GOING + (i+1)*ROW_DISTANCE, HEIGHT, vel_xy = VEL, yaw = np.pi/2)
+                self.mav.go_to_local(0, FIRST_GOING + (i+1)*ROW_DISTANCE, HEIGHT, yaw = np.pi/2)
             elif (i == (2*self.going)-1):
-                self.mav.go_to_local(DISTANCE_DRONES, 0, HEIGHT, vel_xy = VEL, TOL = 0.1)
+                self.mav.go_to_local(DISTANCE_DRONES, 0, HEIGHT, TOL = 0.1)
             elif (i > self.going-1):
-                self.mav.go_to_local(0, FIRST_GOING + (2*self.going-(i+2))*ROW_DISTANCE, HEIGHT, vel_xy = VEL, yaw = -np.pi/2)
+                self.mav.go_to_local(0, FIRST_GOING + (2*self.going-(i+2))*ROW_DISTANCE, HEIGHT, yaw = -np.pi/2)
             elif (i == self.going - 1):
-                rclpy.spin_once(self.mav)
                 current_y = self.mav.drone_pose.pose.position.y
-                self.mav.go_to_local(0, current_y, HEIGHT, yaw = -np.pi/2, vel_xy = VEL)
-           
-
-            
-            rclpy.spin_once(self)
-
+                self.mav.go_to_local(0, current_y, HEIGHT, yaw = -np.pi/2)
 
 
         self.mav.land()
         
     def center_red(self):
-        for j in range(100):
-            rclpy.spin_once(self.mav)
         img = self.mav.cam
         img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(img , (0, 230, 200), (20, 255, 255))
@@ -234,18 +211,16 @@ class trajectory(Node):
         current_y = self.mav.drone_pose.pose.position.y
         while abs((self.compass - degree))>0.2:
             print(self.compass)
-            rclpy.spin_once(self)
+
 
             self.mav.set_vel(0,0,0,yaw=0.1)
         self.mav.set_vel(0,0,0,0)
-        rclpy.spin_once(self)
-        self.mav.go_to_local(current_x, current_y, HEIGHT, vel_xy = VEL)
-        rclpy.spin_once(self)
+        self.mav.go_to_local(current_x, current_y, HEIGHT)
 
 
 
 if __name__ == "__main__":
-    rclpy.init()
+    rospy.init_node('trajectory')
     mav = MAV2()
     missao = trajectory(mav)
-    missao.sonar_trajectory()
+    missao.fix_trajectory()
