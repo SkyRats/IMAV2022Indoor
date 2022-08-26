@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import rospy
-from mavbase.MAV import MAV
+from mavbase2.MAV2 import MAV2
 from IndoorSensors import CSS, US100
 
 from mpl_toolkits.mplot3d.axes3d import get_test_data
@@ -24,7 +24,7 @@ class Map():
         return("1")
     
     def addtoCSV(self, co2, temp):
-        data = [mav.pose.x, mav.pose.y, co2, temp]
+        data = [mav.drone_pose.pose.position.x, mav.drone_pose.pose.position.y, co2, temp]
         with open('/home/gabiyuri/skyrats_ws2/src/indoor22/auto.csv', 'a', encoding='UTF8') as f:
             writer = csv.writer(f)
             writer.writerow(data)
@@ -54,11 +54,11 @@ class Map():
 
 if __name__ == '__main__':
     rospy.init_node("map")
-    mav = MAV()
+    mav = MAV2()
     map = Map(mav)
     map.createCSV()
     for i in range(100):
-        co2 = random.randint(400, 410)
-        temp = random.randint(20, 40)
+        co2 = CSS().retornaValorCO2()
+        dist, temp = US100().medicaoUS100()
         map.addtoCSV(co2, temp)
     map.createGraph()
