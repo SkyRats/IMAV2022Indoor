@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-img = cv2.imread('ver.png')
+img = cv2.imread('foto.png')
 img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 mask = cv2.inRange(img , (0, 230, 200), (20, 255, 255))
 cv2.imshow("img", mask)
