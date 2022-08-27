@@ -6,7 +6,7 @@ import numpy as np
 class diseaseDetection:
 
     def __init__(self):
-        video_path = '/home/gabiyuri/Downloads/video1.mp4'
+        video_path = "/home/renato/skyrats_ws2/src/IMAV2022Indoor/images/video1.mp4"
         #self.cap = cv2.VideoCapture("/dev/video0")
         self.cap = cv2.VideoCapture(video_path)
 
@@ -65,7 +65,7 @@ class diseaseDetection:
         mask = cv2.bitwise_not(mask)
         result = cv2.bitwise_and(mask, imageCopy)
         hsv = cv2.cvtColor(result, cv2.COLOR_BGR2HSV)
-        brownMask = cv2.inRange(hsv, (107, 0, 0), (179, 255, 255))
+        brownMask = cv2.inRange(hsv, (0, 0, 0), (14, 255, 255))
         brownMask = brownMask>0
         imageBrown = np.zeros(image.shape, np.uint8)
         imageBrown[brownMask] = result[brownMask]
@@ -89,8 +89,9 @@ class diseaseDetection:
             imageHSV = cv2.cvtColor(self.image, cv2.COLOR_BGR2HSV)
             #saturation = imageHSV[..., 1]
             #saturation = cv2.add(saturation, 150)
-            greenMask = cv2.inRange(imageHSV, (29, 29, 0), (101, 255, 210))
-            
+
+            greenMask = cv2.inRange(imageHSV, (29, 29, 0), (101, 255, 210))           
+            #greenMask = cv2.inRange(imageHSV, (31, 34, 0), (179, 255, 255))
             #greenMask = cv2.inRange(imageHSV, (59, 8, 138), (98, 24, 255))
             #greenMask = cv2.inRange(imageHSV, (75, 145, 130), (149, 250, 66))
             #greenMask = cv2.inRange(imageHSV, (36, 25, 25), (86, 255, 255))
