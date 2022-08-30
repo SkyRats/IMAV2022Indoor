@@ -1,3 +1,6 @@
+from __future__ import (
+    division, absolute_import, print_function, unicode_literals)
+
 from pickle import PickleError
 from imutils.perspective import four_point_transform
 from skimage import exposure
@@ -88,7 +91,7 @@ def findWhite(filepath):
 	piece = img[0:55, :]
 
 	return piece
-	
+
 def main():
 	imgP = cv2.imread("/home/gabiyuri/frame1.jpg")
 	imgW = cv2.imread('branco.png')
@@ -108,10 +111,27 @@ def main():
 	cv2.imshow("final", final)
 	cv2.waitKey(10000000)
 
+def show(final):
+    print('display')
+    cv2.imshow('Temple', final)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+def white_balance_loops(img):
+    result = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+    avg_a = np.average(result[:, :, 1])
+    avg_b = np.average(result[:, :, 2])
+    result[:, :, 1] = result[:, :, 1] - ((avg_a - 128) * (result[:, :, 0] / 255.0) * 1.1)
+    result[:, :, 2] = result[:, :, 2] - ((avg_b - 128) * (result[:, :, 0] / 255.0) * 1.1)
+    result = cv2.cvtColor(result, cv2.COLOR_LAB2BGR)
+    return result
+
+
 if __name__ == "__main__":
-	#main()
 	img = cv2.imread("/home/gabiyuri/frame1.jpg")
-	final = cv2.xphoto.WhiteBalancer.balanceWhite(img)
-	cv2.imshow("final", final)
-	cv2.waitKey(100000000)
+
+	final = np.hstack((img, white_balance_loops(img)))
+	show(final)
+	cv2.imwrite('result.jpg', final) 
+
 	
