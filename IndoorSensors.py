@@ -21,7 +21,9 @@ class CCS:
         envData_cut = envData[4] + envData[5] + envData[2] + envData[3] #usar bits na ordem 4,5 e 2,3 pra formar o HEX na ordem certa do valor de ppm
         return (int(envData_cut, 16))	
     def start():
-	    os.system("./start.sh")
+	    os.system("i2cget -y 0 0x5a 0x00;")
+	    os.system("i2cset -y -a 0 0x5a 0xF4 c;")
+	    os.system("i2cset -y -a 0 0x5a 0x01 0x10;")
 class US100:
     def medicaoUS100(self):
         uart = serial.Serial("/dev/ttySAC0", baudrate=9600, timeout=1)
@@ -53,9 +55,10 @@ class Main:
     def Main():
         (a,b) = CCS().retornaValorCO2()
         c = US100().medicaoUS100()
-        z = CSVconverter().__init__(self,a,b,c)
-while True:
+        #z = CSVconverter(a,b,c)
+if __name__ == "__main__":
     CCS().start()
-    Main().Main()
-    time.sleep(1)
+    while True:
+        Main().Main()
+    	time.sleep(1)
         
