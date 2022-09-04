@@ -21,8 +21,7 @@ class CCS:
         envData_cut = envData[4] + envData[5] + envData[2] + envData[3] #usar bits na ordem 4,5 e 2,3 pra formar o HEX na ordem certa do valor de ppm
         
         return (int(envData_cut, 16))	
-    def start(self):
-	    os.system("./start.sh")
+
 class US100:
     def medicaoUS100(self):
         uart = serial.Serial("/dev/ttySAC0", baudrate=9600, timeout=1)
