@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import rospy
-from mavbase2.MAV2 import MAV2
+from bebopbase import Bebopbase
 from IndoorSensors import CSS, US100
 
 from mpl_toolkits.mplot3d.axes3d import get_test_data
@@ -13,8 +13,8 @@ import random
 
 class Map():
 
-    def __init__(self, mav):
-        self.mav = mav
+    def __init__(self, bebop):
+        self.bebop = bebop
 
     def createCSV(self):
         header = ["PoseX", "PoseY", "CO2", "Temperature"]
@@ -24,7 +24,7 @@ class Map():
         return("1")
     
     def addtoCSV(self, co2, temp):
-        data = [mav.drone_pose.pose.position.x, mav.drone_pose.pose.position.y, co2, temp]
+        data = [self.bebop.pose[0], self.bebop.pose[1], co2, temp]
         with open('/home/gabiyuri/skyrats_ws2/src/indoor22/auto.csv', 'a', encoding='UTF8') as f:
             writer = csv.writer(f)
             writer.writerow(data)
@@ -54,8 +54,8 @@ class Map():
 
 if __name__ == '__main__':
     rospy.init_node("map")
-    mav = MAV2()
-    map = Map(mav)
+    bebop = Bebopbase()
+    map = Map(bebop)
     map.createCSV()
     for i in range(100):
         co2 = CSS().retornaValorCO2()
