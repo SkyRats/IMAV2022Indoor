@@ -13,6 +13,11 @@ import numpy as np
 
 PI = math.pi
 FRENTE =2.3 #2.73
+TRAZ = ((FRENTE + 2*PI) % (2*PI) ) - PI 
+ESQUERDA = ((FRENTE + 1.5 * PI) % (2 * PI)) - PI  
+DIREITA =  ((FRENTE + 0.5 * PI) % (2 * PI)) - PI
+#Rotacao = (self.yaw + PI + GOAL) % (2*PI) - PI
+
 class Bebopbase():
 
     def __init__(self, namespace="bebop"):
@@ -81,21 +86,15 @@ class Bebopbase():
         vel.linear.z = z
         vel.angular.z = yaw
         self.vel_pub.publish(vel)
-
-    '''def set_position(self, x, y, z, tolerance= 0.1):
-        print(x,y,z)
-        while np.sqrt((x - self.pose[0])**2 + (y - self.pose[1])**2 + (z - self.pose[2])**2) > tolerance:
-            # IMPLEMENTAR CONTROLE
-            self.set_vel(x - self.pose[0], y - self.pose[1], z - self.pose[2], 0)'''
     
 
     def set_position(self, x, y, z, yaw=FRENTE, tolerance= 0.2):
         VEL_MAX_Z = 0.2
-        VEL_MAX = 0.05
+        VEL_MAX = 0.08
 
-        self.P = 0.025 
-        self.I = 0.004
-        self.D = 0.085
+        self.P = 0.05 
+        self.I = 0.0035
+        self.D = 0.09
 
         integral_prior_x = 0
         error_prior_x = 0
@@ -219,46 +218,48 @@ class Bebopbase():
             bebop.set_vel(0.0,0.0,0.0, -0.7*yaw_diff)
         
 
+    def fix_trajectory(self):
+        self.set_position(0, 0, HEIGHT, yaw = ESQUERDA)
+        self.mav.go_to_local(0, FIRST_GOING, HEIGHT) 
+
+        going = ROWS/2
+        for i in range(int(2*going)):
+            if (i < going):
+                self.mav.go_to_local(-ROW_WIDTH, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
+                self.mav.go_to_local(-ROW_WIDTH, FIRST_GOING + i*ROW_DISTANCE, HEIGHT, yaw = -np.pi/2)
+
+                self.mav.go_to_local(0, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
+
+                if(i != going-1):
+                    self.mav.go_to_local(0, FIRST_GOING + i*ROW_DISTANCE, HEIGHT, yaw = np.pi/2)
+                    self.mav.go_to_local(0, FIRST_GOING + (i+1)*ROW_DISTANCE, HEIGHT)
+                else:
+                    self.mav.go_to_local(DISTANCE_DRONES, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
+
+            else:
+                self.mav.go_to_local(DISTANCE_DRONES + ROW_WIDTH, FIRST_GOING + (2*going-(i+1))*ROW_DISTANCE, HEIGHT)
+                self.mav.go_to_local(DISTANCE_DRONES + ROW_WIDTH, FIRST_GOING + (2*going-(i+1))*ROW_DISTANCE, HEIGHT, yaw = np.pi/2)
+                
+                self.mav.go_to_local(DISTANCE_DRONES, FIRST_GOING + (2*going-(i+1))*ROW_DISTANCE, HEIGHT)
+                self.mav.go_to_local(DISTANCE_DRONES, FIRST_GOING + (2*going-(i+1))*ROW_DISTANCE, HEIGHT, yaw = -np.pi/2)
+
+                if(i != 2*going-1):
+                    self.mav.go_to_local(DISTANCE_DRONES, FIRST_GOING + ((2*going-(i+2))*ROW_DISTANCE), HEIGHT)
+                else:
+                    self.mav.go_to_local(DISTANCE_DRONES, 0, HEIGHT)
+            
+        self.mav.land()
+
+
 if __name__ == "__main__":
     rospy.init_node('bebopbase')
     bebop = Bebopbase()
     bebop.takeoff()
-    #bebop.set_position(1,bebop.pose[1],bebop.pose[2])
-    #bebop.set_yaw(np.pi, tolerance=0.01)
-    #bebop.set_yaw(0, tolerance=0.01)
-    ''' bebop.set_yaw(0, tolerance=0.01)
 
-    rospy.sleep(2.)
-    bebop.set_yaw(np.pi/2, tolerance=0.01)
-    rospy.sleep(2.)
-    bebop.set_yaw(np.pi, tolerance=0.01)
-    rospy.sleep(2.)
-    bebop.set_yaw(-np.pi/2, tolerance=0.01)
-    rospy.sleep(2.)'''
-    '''bebop.set_yaw(np.pi)
-    rospy.sleep(3.)
-    bebop.set_yaw(bebop.initial_yaw)
-    rospy.sleep(3.)
-    bebop.set_yaw(np.pi)
-    rospy.sleep(3.)
-    bebop.set_yaw(bebop.initial_yaw)
-    rospy.sleep(3.)'''
-    rospy.sleep(2.)
-    bebop.set_position(0,3,1)
-    rospy.sleep(2.)
-    #bebop.set_position(0,0,1)
-    #rospy.sleep(2.)
-    #bebop.set_position(0,2,1)     
-    #rospy.sleep(2.)
-    #bebop.set_position(0,0,1)
-    #rospy.sleep(2.)
-    
-    print(bebop.yaw) 
-
-
-
-
-    #bebop.set_yaw(0, tolerance=0.005)
+    bebop.set_yaw(FRENTE)
+    bebop.set_yaw(ESQUERDA)
+    bebop.set_yaw(TRAZ)
+    bebop.set_yaw(DIREITA)
 
     bebop.land()
 
