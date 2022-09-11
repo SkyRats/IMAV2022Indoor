@@ -46,8 +46,8 @@ class Bebopbase():
         rospy.sleep(3.)
         rospy.wait_for_message('/bebop/odom', Odometry)
         rospy.wait_for_message("/bebop/image_raw", Image)
-        self.image_pixel_width = 856
-        self.image_pixel_height = 480
+        self.image_width = 856
+        self.image_height = 480
 
     def local_callback(self, data):
         try:
@@ -273,8 +273,10 @@ class Bebopbase():
         self.land()
 
     def save_image(self):
-        cv2.imwrite('image2.png', self.cv_image)
+        cv2.imwrite('image3.png', self.cv_image)
 
+    def save_image1(self):
+        cv2.imwrite('image4.png', self.cv_image)
 
 if __name__ == "__main__":
     rospy.init_node('bebopbase')
@@ -288,9 +290,10 @@ if __name__ == "__main__":
     #bebop.set_yaw(ESQUERDA)
     #bebop.set_position(0.5,-0.5,1)
     bebop.camera_control(0, -90)
-    bebop.set_position(1,0,1)
     rospy.sleep(5)
     bebop.save_image()
+    bebop.set_position(1.5,0,1)
+    bebop.save_image1()
     '''print(FRENTE)
     print(ESQUERDA)
     print(TRAZ)
