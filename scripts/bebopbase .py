@@ -64,11 +64,11 @@ class Bebopbase():
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             pass
         
-       
 
     def image_callback(self, data):
         self.image = data
         self.cv_image = self.bridge_object.imgmsg_to_cv2(data,desired_encoding="bgr8") 
+
 
     def takeoff(self):
         self.initial_yaw = self.yaw
@@ -79,14 +79,14 @@ class Bebopbase():
         rospy.sleep(5.)
 
 
-
-
     def land(self):
         rospy.loginfo("Land")
         self.land_pub.publish(self.empty)
 
+
     def kill(self):
         self.kill_pub.publish(self.empty)
+
 
     def set_vel(self, x, y, z, yaw):
         vel = Twist()
@@ -200,8 +200,6 @@ class Bebopbase():
                 print("vel_x = " + str(vel_x))
                 print("vel_y = " + str(vel_y))
             self.rate.sleep()
-
-
 
             self.set_vel(vel_x, vel_y, 0,0)
         print("position_atual = " + str(self.correct_pose_x) + " , " +  str(self.correct_pose_y) )
