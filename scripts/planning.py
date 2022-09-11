@@ -36,16 +36,14 @@ def mask_green(image):
 
     return imageGreen
 
-if __name__ == '__main__':
+def acha_centro(image):
 
-    # get the image
-    image = cv2.imread("/home/gabs/skyrats_ws/src/IMAV2022Indoor/scripts/caminho4.jpeg")
-    image = cv2.blur(image, (5, 5))
+    cv2.imshow(image)
 
     # define the region of interest - bottom triangle
     height = image.shape[0]
     width = image.shape[1]
-
+    print(image.shape)
     region_of_interest_vertices = [
         (0, height),
         (width/2, height/2),
@@ -73,21 +71,21 @@ if __name__ == '__main__':
         maxLineGap=30
     )
 
-    print(lines)
-
     l1 = []
-    l2 = []
 
     for i in range(len(lines)):
         for j in range(len(lines)):
-            if abs((lines[j+1][0] - lines[i][0]) - 1) < 0.2:
-                l1.append(lines[j+1][0])
-                l2.append(lines[i][0])
+            a = [a[0] for a in lines[i]]
+            b = [b[0] for b in lines[j]]
 
-    centro = sum(l2-l1)/len(l1)
-    print(centro)
+            if abs((a[0] - b[0])  - 1) < 3:
+                l1.append(a[0])
+                l1.append(b[0])
 
-    image_with_lines = draw_the_lines(image, lines)
+    centro = sum(l2)/len(l2)
 
-    plt.imshow(image_with_lines)
-    plt.show()
+    return centro
+
+if __name__ == '__main__':
+    #coloca o endereço da imagem ali
+    acha_centro('~/skyrats_ws/src/IMAV2022INDOOR/scripts/img/')
