@@ -37,6 +37,7 @@ class Bebopbase():
         self.kill_pub = rospy.Publisher( '/' + namespace + '/reset', Empty, queue_size = 50,  latch=True)
         self.vel_pub = rospy.Publisher( '/' + namespace + '/cmd_vel', Twist, queue_size = 50, latch=True)
         self.camera_pub = rospy.Publisher( '/' + namespace + '/camera_control', Twist, queue_size = 50,  latch=True)
+        self.quantidade_fotos = 0
 
         self.local_sub = rospy.Subscriber('/bebop/odom', Odometry, self.local_callback)
         self.camera_sub = rospy.Subscriber('/bebop/image_raw', Image, self.image_callback)
@@ -232,8 +233,8 @@ class Bebopbase():
                 P = -2*PI + P
             elif (P < -PI):
                 P = 2*PI + P
-            print("desired: " + str(desired_yaw))
-            print("Yaw: " + str(self.yaw))
+            #print("desired: " + str(desired_yaw))
+            #print("Yaw: " + str(self.yaw))
             print("P: " + str(P))
 
 
@@ -272,11 +273,19 @@ class Bebopbase():
             
         self.land()
 
-    def save_image(self):
-        cv2.imwrite('image5.png', self.cv_image)
+    def trajectory(self):
+        self.set_yaw(ESQUERDA)
+        self.set_position(0, 0, HEIGHT)
+        self.set_position(0, FIRST_GOING, HEIGHT)
 
-    def save_image1(self):
-        cv2.imwrite('image6.png', self.cv_image)
+        
+
+    def save_image(self):
+        name = "image%d.jpg"%self.quantidade_fotos
+
+        cv2.imwrite(name, self.cam_frame)
+        self.quantidade_fotos += 1
+
 
 if __name__ == "__main__":
     rospy.init_node('bebopbase')
@@ -293,7 +302,6 @@ if __name__ == "__main__":
     rospy.sleep(5)
     bebop.save_image()
     bebop.set_position(1.5,0,1)
-    bebop.save_image1()
     '''print(FRENTE)
     print(ESQUERDA)
     print(TRAZ)
