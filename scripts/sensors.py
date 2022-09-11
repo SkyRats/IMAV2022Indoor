@@ -73,7 +73,7 @@ class Sensors():
 
 if __name__ == "__main__":
     print("a")
-    rospy.init_node('sensors_jonas')
+    rospy.init_node('sensors')
     print("a")
     sensors = Sensors()
     sensors.run()

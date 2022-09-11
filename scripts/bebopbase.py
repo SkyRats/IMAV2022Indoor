@@ -2,6 +2,9 @@
 import rospy
 import math 
 from std_msgs.msg import Empty
+from std_msgs.msg import Float32
+from std_msgs.msg import Int64
+
 from std_msgs.msg import String
 from tf2_msgs.msg import TFMessage
 from sensor_msgs.msg import Image
@@ -11,9 +14,10 @@ import tf
 import numpy as np
 import cv2
 from cv_bridge import CvBridge
+RED_MISSION = 0
 
 PI = math.pi
-FRENTE =-2.9
+FRENTE =-1.299
 TRAZ = ((FRENTE + 2*PI) % (2*PI) ) - PI 
 ESQUERDA = ((FRENTE + 1.5 * PI) % (2 * PI)) - PI  
 DIREITA =  ((FRENTE + 0.5 * PI) % (2 * PI)) - PI
@@ -22,7 +26,6 @@ FIRST_GOING =2
 ROW_DISTANCE = 2.8
 ROW_WIDTH = 6
 ROWS = 12
-#Rotacao = (self.yaw + PI + GOAL) % (2*PI) - PI
 
 class Bebopbase():
 
@@ -41,14 +44,28 @@ class Bebopbase():
 
         self.local_sub = rospy.Subscriber('/bebop/odom', Odometry, self.local_callback)
         self.camera_sub = rospy.Subscriber('/bebop/image_raw', Image, self.image_callback)
+        self.sonar_sub = rospy.Subscriber('/jonas/sonar', Float32, self.sonar_callback)
+        self.temperature_sub = rospy.Subscriber('/jonas/temperature', Float32, self.temperature_callback)
+        self.co2_sub = rospy.Subscriber('/jonas/CO2', Int64, self.co2_callback)
 
         self.listener = tf.TransformListener() # position tf listener
 
         rospy.sleep(3.)
         rospy.wait_for_message('/bebop/odom', Odometry)
         rospy.wait_for_message("/bebop/image_raw", Image)
-        self.image_width = 856
-        self.image_height = 480
+        self.width = 856
+        self.height = 480
+
+        self.direction = "FRENTE"
+
+    def sonar_callback(self, data):
+        self.sonar = data
+
+    def co2_callback(self, data):
+        self.co2 = data  
+
+    def temperature_callback(self, data):
+        self.temperature = data
 
     def local_callback(self, data):
         try:
@@ -63,13 +80,7 @@ class Bebopbase():
             #print("YAW = : " + str(self.yaw))
 
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-            pass
-        
-
-    def image_callback(self, data):
-        self.image = data
-        self.cv_image = self.bridge_object.imgmsg_to_cv2(data,desired_encoding="bgr8") 
-
+            pass 
 
     def takeoff(self):
         self.initial_yaw = self.yaw
@@ -79,11 +90,9 @@ class Bebopbase():
         
         rospy.sleep(5.)
 
-
     def land(self):
         rospy.loginfo("Land")
         self.land_pub.publish(self.empty)
-
 
     def kill(self):
         self.kill_pub.publish(self.empty)
@@ -102,8 +111,6 @@ class Bebopbase():
         vel_cam.angular.y = vertical
         vel_cam.angular.z = horizontal
         self.camera_pub.publish(vel_cam)
-
-    
 
     def set_position(self, x, y, z, tolerance= 0.2):
         VEL_MAX_Z = 0.2
@@ -146,10 +153,8 @@ class Bebopbase():
         ultimo_contador = 0
         self.iteration_time = 1.0/60
 
-        print(np.sqrt((x - self.correct_pose_x)**2 + (y -self.correct_pose_y)**2))
         while np.sqrt((x - self.correct_pose_x)**2 + (y -self.correct_pose_y)**2)  > tolerance and not rospy.is_shutdown():
 
-        #while y - self.correct_pose_y > tolerance and not rospy.is_shutdown():
            
             cont_loops = cont_loops + 1
             delta_x =  float(x - self.correct_pose_x)
@@ -168,9 +173,9 @@ class Bebopbase():
                 # IMPLEMENTAR CONTROLE
 
 
-                print("P= " + str(self.P * delta_y))
-                print("I = " +str( self.I * integral_y))
-                print("D = " + str( self.D * derivative_y ))
+                #print("P= " + str(self.P * delta_y))
+                #print("I = " +str( self.I * integral_y))
+                #print("D = " + str( self.D * derivative_y ))
 
                 # Centralization PID
                 vel_x = self.P * delta_x + self.I * integral_x + self.D * derivative_x 
@@ -183,7 +188,7 @@ class Bebopbase():
                 integral_prior_x = integral_x
                 integral_prior_y = integral_y
 
-
+                
                 if abs(vel_x) > VEL_MAX:
                     if vel_x > VEL_MAX:
                         vel_x = VEL_MAX
@@ -197,15 +202,14 @@ class Bebopbase():
                         vel_y = -VEL_MAX
                         
 
-                print("position_atual = " + str(self.correct_pose_x) + " , " +  str(self.correct_pose_y) )
-                print("vel_x = " + str(vel_x))
-                print("vel_y = " + str(vel_y))
+                print("( " + str(self.correct_pose_x) + " , " +  str(self.correct_pose_y) + " )")
+                #print("vel_x = " + str(vel_x))
+                #print("vel_y = " + str(vel_y))
             self.rate.sleep()
 
             self.set_vel(vel_x, vel_y, 0,0)
         print("position_atual = " + str(self.correct_pose_x) + " , " +  str(self.correct_pose_y) )
         self.set_vel(0, 0, 0, 0)
-
 
     def rotate(self,desired_yaw, tolerance=0.01):
         yaw_diff = tolerance + 1
@@ -220,39 +224,42 @@ class Bebopbase():
             # IMPLEMENTAR CONTROLE
             bebop.set_vel(0.0,0.0,0.0, -0.7*yaw_diff)
 
-    def set_yaw(self, desired_yaw, tolerance=0.01):
+    def set_yaw(self, desired_yaw, tolerance=0.03):
         P = desired_yaw - self.yaw
         if(P  > PI):
             P = -2*PI + P
         elif (P < -PI):
             P = 2*PI + P
+        self.yaw_antigo = 0
         while abs(P) >= tolerance and not rospy.is_shutdown():
-            bebop.set_vel(0.0,0.0,0.0,0.7*P)
-            P = desired_yaw - self.yaw
-            if(P  > PI):
-                P = -2*PI + P
-            elif (P < -PI):
-                P = 2*PI + P
-            #print("desired: " + str(desired_yaw))
-            #print("Yaw: " + str(self.yaw))
-            print("P: " + str(P))
-
+            self.yaw_atual = self.yaw
+            if self.yaw_antigo - self.yaw_atual == 0:
+                bebop.set_vel(0.0,0.0,0.0,0.3*P)
+                P = desired_yaw - self.yaw
+                if(P  > PI):
+                    P = -2*PI + P
+                elif (P < -PI):
+                    P = 2*PI + P
+                #print("desired: " + str(desired_yaw))
+                #print("Yaw: " + str(self.yaw))
+                #print("P: " + str(P))
+            self.yaw_antigo = self.yaw
 
     def fix_trajectory(self):
         self.set_yaw(FRENTE)
         self.set_position(0, 0, HEIGHT)
         self.set_position(0, FIRST_GOING, HEIGHT) 
 
-        going = ROWS/2
-        for i in range(int(2*going)):
-            if (i < going):
+        retas_completas = ROWS/2
+        for i in range(int( (2 * retas_completas ) - 2)):
+            if (i < retas_completas):
                 self.set_position(-ROW_WIDTH, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
                 set_yaw(TRAZ)
                 self.set_position(-ROW_WIDTH, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
 
                 self.set_position(0, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
 
-                if(i != going-1):
+                if(i != retas_completas - 1):
                     self.set_yaw(FRENTE)
                     self.set_position(0, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
                     self.set_position(0, FIRST_GOING + (i+1)*ROW_DISTANCE, HEIGHT)
@@ -260,25 +267,175 @@ class Bebopbase():
                     self.set_position(0, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
 
             else:
-                self.set_position(ROW_WIDTH, FIRST_GOING + (2*going-(i+1))*ROW_DISTANCE, HEIGHT)
+                self.set_position(ROW_WIDTH, FIRST_GOING + (2*retas_completas-(i+1))*ROW_DISTANCE, HEIGHT)
                 self.set_yaw(TRAZ)
                 
-                self.set_position(0, FIRST_GOING + (2*going-(i+1))*ROW_DISTANCE, HEIGHT)
+                self.set_position(0, FIRST_GOING + (2*retas_completas-(i+1))*ROW_DISTANCE, HEIGHT)
                 self.set_yaw(FRENTE)
 
-                if(i != 2*going-1):
-                    self.set_position(0, FIRST_GOING + ((2*going-(i+2))*ROW_DISTANCE), HEIGHT)
+                if(i != 2*retas_completas-1):
+                    self.set_position(0, FIRST_GOING + ((2*retas_completas-(i+2))*ROW_DISTANCE), HEIGHT)
                 else:
                     self.set_position(0, 0, HEIGHT)
             
         self.land()
 
     def trajectory(self):
-        self.set_yaw(ESQUERDA)
+        #SOBE A 1 METRO DE ALTURA
+        self.takeoff() 
+        #VIRA A CAMERA PARA BAIXO
+        self.camera_control(0,-45)
+        rospy.sleep(5)
+        #RODA O DRONE PARA ESQUERDA
+        self.set_yaw(FRENTE)
+        #SOBE PARA A ALTURA DESEJADA
         self.set_position(0, 0, HEIGHT)
-        self.set_position(0, FIRST_GOING, HEIGHT)
 
+        #VAI PARA FRENTE DE LADO
+        self.set_position(0, 0.85, HEIGHT)
+
+        #DEFINE O NUMERO DE RETAS QUE VAO DE ESQUERDA A DIREITA
+        self.retas_completas = (ROWS - 2)/2 #O "-2" ESTA AI PQ DUAS COLUNAS SAO INDIVIDUAIS
         
+        for i in range(int(self.retas_completas)):
+            #RED MISSION ACIONA A CENTRALIZACAO NO VERMELHO
+            if (RED_MISSION == 1):
+
+                self.align = 0 #DEFINE COMO DESCENTRALIZADO
+                #self.camera_control(0, 0) #VIRA A CAMERA PARA FRENTE
+                #rospy.sleep(5)
+
+                while(self.align == 0) and not rospy.is_shutdown(): #ENQUANTO NAO ESTIVER CENTRALIZADO
+                    print("Centralizando no vermelho")
+                    x_goal = self.center_red() #ENCONTRA O CENTRO DO VERMELHO
+
+                    print("PID")
+                    self.camera_pid(x_goal, 1)# 1 POIS O DRONE ESTA OLHANDO PARA A ESQUERDA
+
+                self.set_vel(0, 0, 0, 0)
+
+                #self.camera_control(0, -90) #VIRA A CAMERA PARA BAIXO
+                #rospy.sleep(5)
+
+            current_y = self.correct_pose_y
+
+            while not rospy.is_shutdown() and abs(self.sonar - 6) > 0.5: 
+                self.set_vel(0.03, 0, 0, 0)
+            
+            self.set_vel(0, 0, 0, 0)
+
+            current_x = self.correct_pose_x
+            current_y = self.correct_pose_y
+         
+            self.set_yaw(TRAZ)
+            self.set_position(current_x, current_y, HEIGHT)
+         
+            while not rospy.is_shutdown() and abs(self.correct_pose_x - 0) > TOL :
+                print(self.correct_pose_x)
+                self.set_vel(0.03, 0, 0, 0)
+
+            #PERCORRER O LADO DIREITO
+            if (RED_MISSION == 1):
+
+                self.align = 0 #DEFINE COMO DESCENTRALIZADO
+                #self.camera_control(0, 0) 
+                #rospy.sleep(5)
+
+                while(self.align == 0) and not rospy.is_shutdown():
+                    print("Centralizando no vermelho")
+                    x_goal = self.center_red()
+
+                    print("PID")
+                    self.camera_pid(x_goal, -1) # -1 POIS O DRONE ESTA OLHANDO PARA A DIREITA
+
+                self.set_vel(0, 0, 0, 0)
+
+                #self.camera_control(0, -90) #VIRA A CAMERA PARA BAIXO
+                #rospy.sleep(5)
+            
+            while not rospy.is_shutdown() and abs(self.sonar - 6) > 0.5 :
+                self.set_vel(0.03, 0, 0, 0)
+            
+            self.set_vel(0, 0, 0, 0)
+
+            current_x = self.correct_pose_x
+            current_y = self.correct_pose_y
+         
+            self.set_yaw(FRENTE)
+            self.set_position(current_x, current_y, HEIGHT)
+
+            while not rospy.is_shutdown() and abs(self.correct_pose_x - 0) > TOL :
+                print(self.correct_pose_x)
+                self.mav.set_vel(0.03, 0, 0, 0)
+         
+            if (i < self.retas_completas-1):
+                self.set_position(0, -(self.correct_pose_y + ROW_DISTANCE), HEIGHT)  #LOGICA: (x, y) --> (y, -x)
+
+            elif (i == self.retas_completas-1): #SE TIVER FEITO A ULTIMA COLUNA 
+                self.land()
+            else: #NAO DEVERIA CONSEGUIR ENTRAR AQUI
+                print("???")
+        
+    def center_red(self):
+        img = self.cv_image
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        mask = cv2.inRange(img , (0, 230, 200), (20, 255, 255))
+
+        self.height = mask.shape[0]
+        self.width = mask.shape[1]
+        
+
+        contours, heirarchies = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        mask = np.zeros(mask.shape[:2], dtype='uint8')
+        
+        cv2.drawContours(mask, contours, -1, (255, 0, 0), 1)
+        
+        
+        cv2.imwrite("Contours.png", mask)
+
+        centerx = np.empty(2)
+        cont = 0
+        for i in contours:
+            M = cv2.moments(i)
+            if M['m00'] != 0:
+                cx = int(M['m10']/M['m00'])
+                cy = int(M['m01']/M['m00'])
+
+                area = cv2.contourArea(i)
+                if area > 200:
+                    
+                    centerx[cont] = cx
+                    cont = cont + 1
+
+                    #print(f"x: {centerx[0]}")
+                    #print(f"x: {centerx[1]}")
+
+
+        x_goal = ( centerx[1] - centerx[0] ) / 2 + centerx[0]
+
+
+        return x_goal
+
+    def camera_pid(self, x_goal, signal):
+        self.TARGET = int(self.width/2)
+        delta_x = self.TARGET - x_goal
+
+        self.TOL = 0.02
+        self.PID = 0.0002
+        # Centralization PID
+        vel_y = delta_x * self.PID
+
+        self.align = 0
+
+        if abs(vel_y) < self.TOL:
+            vel_y = 0.0
+            self.row_y = self.mav.drone_pose.pose.position.y
+            self.align = 1
+        
+        self.mav.set_vel(0, signal * vel_y, 0)
+              
+        #self.get_logger().info(" erro: " + str(delta_x))  
+        #self.get_logger().info(" vely: " + str(vel_y))
 
     def save_image(self):
         name = "image%d.jpg"%self.quantidade_fotos
@@ -286,33 +443,34 @@ class Bebopbase():
         cv2.imwrite(name, self.cam_frame)
         self.quantidade_fotos += 1
 
+    def ultrateste(self):
+        self.takeoff()
+        while not rospy.is_shutdown() and abs(self.sonar - 200) > 0.5 :
+            print("Sonar: " + str(self.sonar))
+            self.set_vel(0.03 , 0,0)
+        self.set_vel(0, 0, 0)
+        self.land()
 
 if __name__ == "__main__":
     rospy.init_node('bebopbase')
     bebop = Bebopbase()
+    #bebop.ultrateste()
+
     bebop.takeoff()
-    #bebop.set_yaw(DIREITA)
-    #bebop.set_yaw(ESQUERDA)
-    #bebop.set_yaw(FRENTE)
 
-    #bebop.set_position(0.5,0,1)
-    #bebop.set_yaw(ESQUERDA)
-    #bebop.set_position(0.5,-0.5,1)
-    bebop.camera_control(0, -90)
-    rospy.sleep(5)
-    bebop.save_image()
-    bebop.set_position(1.5,0,1)
-    '''print(FRENTE)
-    print(ESQUERDA)
-    print(TRAZ)
-    print(DIREITA)
+    bebop.set_yaw(FRENTE)
+    print(bebop.yaw)
 
-    bebop.camera_control(0, -90)
-    #print("a")
+    bebop.set_yaw(ESQUERDA)
+    print(bebop.yaw)
 
-    #bebop.set_yaw(FRENTE)
-    #bebop.set_yaw(ESQUERDA)
-    #bebop.set_yaw(DIREITA)'''
+    bebop.set_yaw(TRAZ)
+    print(bebop.yaw)
+    
+    bebop.set_yaw(DIREITA)   
+    print(bebop.yaw)
+    
+    bebop.set_yaw(FRENTE)
+    print(bebop.yaw)
 
     bebop.land()
-

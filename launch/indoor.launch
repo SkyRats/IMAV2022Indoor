@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="IMAV2022Indoor" name="bebopbase" type="bebopbase.py" output="screen"/>
+    <node pkg="IMAV2022Indoor" name="sensors" type="sensors.py" output="screen"/>
+</launch>
