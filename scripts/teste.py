@@ -1,3 +1,6 @@
+from curses.ascii import CAN
+from nis import match
+from pickletools import uint1
 import cv2
 import numpy as np
 import matplotlib.pylab as plt
@@ -22,24 +25,10 @@ def draw_the_lines(img, lines):
     img = cv2.addWeighted(img, 0.8, blank_image, 1, 0.0)
     return img
 
-def mask_green(image):
-    sensitivity = 15
-
-    imageHSV = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    greenMask = cv2.inRange(imageHSV, (65, 39, 19), (107, 255, 66))
-
-    imask = greenMask>0
-    imageGreen = np.zeros_like(image, np.uint8)
-    imageGreen[imask] = image[imask]
-
-    imageGreen = cv2.cvtColor(imageGreen, cv2.COLOR_HSV2BGR)
-
-    return imageGreen
-
 if __name__ == '__main__':
 
     # get the image
-    image = cv2.imread("/home/gabs/skyrats_ws/src/IMAV2022Indoor/scripts/caminho4.jpeg")
+    image = cv2.imread("/home/gabs/skyrats_ws/src/IMAV2022Indoor/scripts/caminho1.jpeg")
     image = cv2.blur(image, (5, 5))
 
     # define the region of interest - bottom triangle
@@ -53,11 +42,8 @@ if __name__ == '__main__':
     ]
 
     # find the edges
-    #image_green = mask_green(image)
-    #plt.imshow(image_green)
-    #plt.show()
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    canny_image = cv2.Canny(gray_image, 70, 125)
+    canny_image = cv2.Canny(gray_image, 100, 150)
 
     # create the image with region of interest only
     cropped_image = region_of_interest(canny_image, np.array([region_of_interest_vertices], np.int32),)
@@ -65,29 +51,16 @@ if __name__ == '__main__':
     # lines
     lines = cv2.HoughLinesP(
         cropped_image,
-        rho=1,
-        theta=np.pi/180,
-        threshold=100,
+        rho=6,
+        theta=np.pi/60,
+        threshold=160,
         lines=np.array([]),
-        minLineLength=70,
-        maxLineGap=30
+        minLineLength=min(image.shape[0]/5, image.shape[1]/5),
+        maxLineGap=15
     )
-
-    print(lines)
-
-    l1 = []
-    l2 = []
-
-    for i in range(len(lines)):
-        for j in range(len(lines)):
-            if abs((lines[j+1][0] - lines[i][0]) - 1) < 0.2:
-                l1.append(lines[j+1][0])
-                l2.append(lines[i][0])
-
-    centro = sum(l2-l1)/len(l1)
-    print(centro)
 
     image_with_lines = draw_the_lines(image, lines)
 
     plt.imshow(image_with_lines)
+    #plt.imshow(image_with_lines)
     plt.show()
