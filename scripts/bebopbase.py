@@ -273,10 +273,10 @@ class Bebopbase():
         self.land()
 
     def save_image(self):
-        cv2.imwrite('image3.png', self.cv_image)
+        cv2.imwrite('image5.png', self.cv_image)
 
     def save_image1(self):
-        cv2.imwrite('image4.png', self.cv_image)
+        cv2.imwrite('image6.png', self.cv_image)
 
 if __name__ == "__main__":
     rospy.init_node('bebopbase')
