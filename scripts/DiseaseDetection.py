@@ -7,6 +7,7 @@ class diseaseDetection:
 
     def __init__(self):
         self.image = cv2.imread("/home/gabs/skyrats_ws/src/IMAV2022Indoor/scripts/planta.png")
+        self.disease = False
         self.min_green = (35, 64, 70)
         self.max_green = (80, 255, 231)
         self.min_brown = (11, 4, 133)
@@ -46,9 +47,11 @@ class diseaseDetection:
         contours, hierarchy = cv2.findContours(image= thresh, mode= cv2.RETR_LIST, method= cv2.CHAIN_APPROX_NONE)
         sorted_contours = sorted(contours, key= cv2.contourArea, reverse= True)
 
+        #find the biggest leaf in the green image
         largestContour = []
         if sorted_contours:
             largestContour = [sorted_contours[0]]
+            contour_area = cv2.contourArea(sorted_contours[0])
 
         mask = np.zeros(image.shape, np.uint8)
         mask.fill(255)
@@ -56,12 +59,14 @@ class diseaseDetection:
             cv2.fillPoly(mask, largestContour, (0,0,0))
         
         mask = cv2.bitwise_not(mask)
-        result = cv2.bitwise_and(mask, imageCopy)
-        hsv = cv2.cvtColor(result, cv2.COLOR_BGR2HSV)
+        leaf = cv2.bitwise_and(mask, imageCopy)
+
+        #use brown mask to verify disease
+        hsv = cv2.cvtColor(leaf, cv2.COLOR_BGR2HSV)
         brownMask = cv2.inRange(hsv, self.min_brown, self.max_brown)
         brownMask = brownMask>0
         imageBrown = np.zeros(image.shape, np.uint8)
-        imageBrown[brownMask] = result[brownMask]
+        imageBrown[brownMask] = leaf[brownMask]
 
         gray = cv2.cvtColor(imageBrown, cv2.COLOR_BGR2GRAY)
         ret, thresh = cv2.threshold(gray, 40, 255, cv2.THRESH_BINARY)
@@ -69,7 +74,7 @@ class diseaseDetection:
         contours, hierarchy = cv2.findContours(image=thresh,mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_NONE)
         result = cv2.drawContours(image=imageCopy, contours=contours, contourIdx=-1, color=(255,0,0), thickness=2, lineType=cv2.LINE_AA)
 
-        return result
+        return contours, result, contour_area
 
     def detectionLoop(self):
         imageHSV = cv2.cvtColor(self.image, cv2.COLOR_BGR2HSV)
@@ -93,14 +98,42 @@ class diseaseDetection:
         result = self.recomposeImage(processedImage)
         '''
 
-        result = self.imageProcessing(imageGreen, imageGreen_copy)
+        contours, result, contour_area = self.imageProcessing(imageGreen, imageGreen_copy)
+
+        max_contours = len(contours)
+        i = 0
+        for contour in contours:
+            if cv2.contourArea(contour)/contour_area > 0.05:
+                i += 1
     
-        cv2.namedWindow("result", cv2.WINDOW_FULLSCREEN)
-        cv2.imshow("result", result)
-        cv2.waitKey(0)
+        if i > max_contours/2:
+            self.disease = True
+
+        return result
     
     def main_interface(self):
-        self.detectionLoop()
+        result = self.detectionLoop()
 
-detection = diseaseDetection()
-detection.main_interface()
+        if self.disease == True:
+            cv2.namedWindow("Disease", cv2.WINDOW_FULLSCREEN)
+            cv2.imshow("Disease", result)
+        else:
+            cv2.namedWindow("Healthy", cv2.WINDOW_FULLSCREEN)
+            cv2.imshow("Healthy", result)
+        
+        cv2.waitKey(0)
+
+
+if __name__ == "__main__":
+
+    detection = diseaseDetection()
+    result = detection.detectionLoop()
+
+    if detection.disease == True:
+        cv2.namedWindow("Disease", cv2.WINDOW_FULLSCREEN)
+        cv2.imshow("Disease", result)
+    else:
+        cv2.namedWindow("Healthy", cv2.WINDOW_FULLSCREEN)
+        cv2.imshow("Healthy", result)
+    
+    cv2.waitKey(0)
