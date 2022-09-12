@@ -16,7 +16,7 @@ import tf
 import numpy as np
 import cv2
 from cv_bridge import CvBridge
-RED_MISSION = 0
+RED_MISSION = 1
 
 PI = math.pi
 FRENTE = -2.56497427607
@@ -156,7 +156,6 @@ class Bebopbase():
 
         self.set_vel(0, 0, 0, 0)
         cont_loops = 0
-        cont_loops_ativos = 0
         ultimo_contador = 0
         self.iteration_time = 1.0/60
 
@@ -218,19 +217,6 @@ class Bebopbase():
         print("position_atual = " + str(self.correct_pose_x) + " , " +  str(self.correct_pose_y) )
         self.set_vel(0, 0, 0, 0)
 
-    def rotate(self,desired_yaw, tolerance=0.01):
-        yaw_diff = tolerance + 1
-        while abs(yaw_diff) >= tolerance and not rospy.is_shutdown():
-            if self.yaw*desired_yaw >= 0:
-                yaw_diff = self.yaw - desired_yaw
-            elif self.yaw >= 0:
-                yaw_diff = (abs(self.yaw) + abs(desired_yaw)) - 2*np.pi
-            elif self.yaw <= 0:
-                yaw_diff = 2*np.pi - (abs(self.yaw) + abs(desired_yaw))
-
-            # IMPLEMENTAR CONTROLE
-            bebop.set_vel(0.0,0.0,0.0, -0.7*yaw_diff)
-
     def set_yaw(self, desired_yaw, tolerance=0.03):
         P = desired_yaw - self.yaw
         if(P  > PI):
@@ -251,41 +237,6 @@ class Bebopbase():
                 #print("Yaw: " + str(self.yaw))
                 #print("P: " + str(P))
             self.yaw_antigo = self.yaw
-
-    def fix_trajectory(self):
-        self.set_yaw(FRENTE)
-        self.set_position(0, 0, HEIGHT)
-        self.set_position(0, FIRST_GOING, HEIGHT) 
-
-        retas_completas = ROWS/2
-        for i in range(int( (2 * retas_completas ) - 2)):
-            if (i < retas_completas):
-                self.set_position(-ROW_WIDTH, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
-                set_yaw(TRAZ)
-                self.set_position(-ROW_WIDTH, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
-
-                self.set_position(0, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
-
-                if(i != retas_completas - 1):
-                    self.set_yaw(FRENTE)
-                    self.set_position(0, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
-                    self.set_position(0, FIRST_GOING + (i+1)*ROW_DISTANCE, HEIGHT)
-                else:
-                    self.set_position(0, FIRST_GOING + i*ROW_DISTANCE, HEIGHT)
-
-            else:
-                self.set_position(ROW_WIDTH, FIRST_GOING + (2*retas_completas-(i+1))*ROW_DISTANCE, HEIGHT)
-                self.set_yaw(TRAZ)
-                
-                self.set_position(0, FIRST_GOING + (2*retas_completas-(i+1))*ROW_DISTANCE, HEIGHT)
-                self.set_yaw(FRENTE)
-
-                if(i != 2*retas_completas-1):
-                    self.set_position(0, FIRST_GOING + ((2*retas_completas-(i+2))*ROW_DISTANCE), HEIGHT)
-                else:
-                    self.set_position(0, 0, HEIGHT)
-            
-        self.land()
 
     def trajectory(self):
         #SOBE A 1 METRO DE ALTURA
