@@ -87,5 +87,5 @@ def acha_centro(image):
     return centro
 
 if __name__ == '__main__':
-    #coloca o endereço da imagem ali
-    acha_centro('~/skyrats_ws/src/IMAV2022INDOOR/scripts/img/')
+    #coloca o endereo da imagem ali
+    acha_centro('caminho1.jpeg')
