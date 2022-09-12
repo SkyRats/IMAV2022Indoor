@@ -8,7 +8,8 @@ from std_msgs.msg import Int64
 from std_msgs.msg import String
 from tf2_msgs.msg import TFMessage
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Twist, TransformStamped
+from geometry_msgs.msg import Twist, TransformStamped, PoseStamped
+
 from nav_msgs.msg import Odometry
 import tf
 import numpy as np
@@ -17,7 +18,7 @@ from cv_bridge import CvBridge
 RED_MISSION = 0
 
 PI = math.pi
-FRENTE =-1.299
+FRENTE = -2.56497427607
 TRAZ = ((FRENTE + 2*PI) % (2*PI) ) - PI 
 ESQUERDA = ((FRENTE + 1.5 * PI) % (2 * PI)) - PI  
 DIREITA =  ((FRENTE + 0.5 * PI) % (2 * PI)) - PI
@@ -48,6 +49,8 @@ class Bebopbase():
         self.temperature_sub = rospy.Subscriber('/jonas/temperature', Float32, self.temperature_callback)
         self.co2_sub = rospy.Subscriber('/jonas/CO2', Int64, self.co2_callback)
 
+        self.local_cam_sub = rospy.Subscriber('/orb_sl2_mono/pose', PoseStamped, self.local_callback)
+
         self.listener = tf.TransformListener() # position tf listener
 
         rospy.sleep(3.)
@@ -61,6 +64,12 @@ class Bebopbase():
     def sonar_callback(self, data):
         self.sonar = data
 
+    def local_cam_sub(self, data):
+        self.correct_pose_x = self.Pose.Point.x
+        self.correct_pose_y = self.Pose.Point.y
+        self.correct_pose_z = self.Pose.Point.z
+
+
     def co2_callback(self, data):
         self.co2 = data  
 
@@ -68,6 +77,8 @@ class Bebopbase():
         self.temperature = data
 
     def local_callback(self, data):
+        pass
+        '''
         try:
             position,quaternion = self.listener.lookupTransform('/base_link', '/odom', rospy.Time(0))
             self.pose = np.multiply(-1,position)
@@ -81,6 +92,10 @@ class Bebopbase():
 
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             pass 
+        '''
+    def image_callback(self, data):
+        self.image = data
+        self.cv_image = self.bridge_object.imgmsg_to_cv2(data,desired_encoding="bgr8") 
 
     def takeoff(self):
         self.initial_yaw = self.yaw
@@ -89,6 +104,7 @@ class Bebopbase():
         self.takeoff_pub.publish(self.empty)
         
         rospy.sleep(5.)
+        print(self.yaw)
 
     def land(self):
         rospy.loginfo("Land")
@@ -96,7 +112,6 @@ class Bebopbase():
 
     def kill(self):
         self.kill_pub.publish(self.empty)
-
 
     def set_vel(self, x, y, z, yaw):
         vel = Twist()
@@ -379,18 +394,21 @@ class Bebopbase():
     def center_red(self):
         img = self.cv_image
         img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(img , (0, 230, 200), (20, 255, 255))
+        mask = cv2.inRange(img , (0, 176, 144), (17, 255, 255))
+        kernel = np.ones((15, 15), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations=6)
+        ksize = (5, 5)
+        mask = cv2.blur(mask, ksize) 
+        mask = cv2.blur(mask, ksize) 
+    
+        height = mask.shape[0]
+        width = mask.shape[1]
 
-        self.height = mask.shape[0]
-        self.width = mask.shape[1]
-        
-
-        contours, heirarchies = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        _, contours, _= cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
         mask = np.zeros(mask.shape[:2], dtype='uint8')
-        
+
         cv2.drawContours(mask, contours, -1, (255, 0, 0), 1)
-        
-        
+
         cv2.imwrite("Contours.png", mask)
 
         centerx = np.empty(2)
@@ -410,9 +428,10 @@ class Bebopbase():
                     #print(f"x: {centerx[0]}")
                     #print(f"x: {centerx[1]}")
 
+        x_goal =( ( centerx[1] - centerx[0] ) / 2 ) + centerx[0]
 
-        x_goal = ( centerx[1] - centerx[0] ) / 2 + centerx[0]
-
+        print(x_goal)
+       
 
         return x_goal
 
@@ -445,7 +464,7 @@ class Bebopbase():
 
     def ultrateste(self):
         self.takeoff()
-        while not rospy.is_shutdown() and abs(self.sonar - 200) > 0.5 :
+        while not rospy.is_shutdown() and abs(self.sonar - 2000) > 0.5 :
             print("Sonar: " + str(self.sonar))
             self.set_vel(0.03 , 0,0)
         self.set_vel(0, 0, 0)
@@ -457,20 +476,8 @@ if __name__ == "__main__":
     #bebop.ultrateste()
 
     bebop.takeoff()
-
-    bebop.set_yaw(FRENTE)
-    print(bebop.yaw)
-
-    bebop.set_yaw(ESQUERDA)
-    print(bebop.yaw)
-
+    bebop.set_position(1,0,1)
     bebop.set_yaw(TRAZ)
-    print(bebop.yaw)
-    
-    bebop.set_yaw(DIREITA)   
-    print(bebop.yaw)
-    
-    bebop.set_yaw(FRENTE)
-    print(bebop.yaw)
-
+    bebop.set_position(0,0,1)
+    bebop.set_position(-1,0)    
     bebop.land()
