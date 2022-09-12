@@ -55,8 +55,9 @@ void loop() {
   }
   
   int temperaturaVar = temperatura();
-  Serial.print("Temp: ");
-  Serial.println(temperaturaVar);
+  // Serial.print("Temp: ");
+  Serial.print(temperaturaVar);
+  Serial.print(" ");
   delay(10);
   
   while (mySerial.available()>0){
@@ -64,17 +65,15 @@ void loop() {
  }
  
   int distanciaVar = distancia();
-  Serial.print("Dist: ");
-  Serial.println(distanciaVar);
+  // Serial.print("Dist: ");
+  Serial.print(distanciaVar);
+  Serial.print(" ");
   delay(10);   
 
 
   int co2Var = co2();  
-  Serial.print("CO2: ");
+  // Serial.print("CO: ");
   Serial.println(co2Var);
   delay(10);   
                                                        
 } 
- /*
-  * 
-  */
