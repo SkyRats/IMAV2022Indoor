@@ -38,12 +38,11 @@ def mask_green(image):
 
 def acha_centro(image):
 
-    cv2.imshow(image)
+    #cv2.imshow(image)
 
     # define the region of interest - bottom triangle
     height = image.shape[0]
     width = image.shape[1]
-    print(image.shape)
     region_of_interest_vertices = [
         (0, height),
         (width/2, height/2),
@@ -55,37 +54,59 @@ def acha_centro(image):
     #plt.imshow(image_green)
     #plt.show()
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    canny_image = cv2.Canny(gray_image, 70, 125)
+    canny_image = cv2.Canny(gray_image, 100, 500)
 
     # create the image with region of interest only
     cropped_image = region_of_interest(canny_image, np.array([region_of_interest_vertices], np.int32),)
 
     # lines
+    lines = []
     lines = cv2.HoughLinesP(
         cropped_image,
         rho=1,
         theta=np.pi/180,
         threshold=100,
         lines=np.array([]),
-        minLineLength=70,
-        maxLineGap=30
+        minLineLength=100,
+        maxLineGap=10
     )
 
-    l1 = []
+    centro = 0
+    image_lines = None
 
-    for i in range(len(lines)):
-        for j in range(len(lines)):
-            a = [a[0] for a in lines[i]]
-            b = [b[0] for b in lines[j]]
+    if len(lines) != 0:
+        image_lines = draw_the_lines(image, lines)
 
-            if abs((a[0] - b[0])  - 1) < 3:
-                l1.append(a[0])
-                l1.append(b[0])
+        l1 = []
 
-    centro = sum(l2)/len(l2)
+        for i in range(len(lines)):
+            for j in range(len(lines)):
+                a = [a[0] for a in lines[i]]
+                b = [b[0] for b in lines[j]]
 
-    return centro
+                if abs((a[0] - b[0])  - 1) < 3:
+                    l1.append(a[0])
+                    l1.append(b[0])
+
+        centro = sum(l1)/len(l1)
+    
+    return image_lines, centro
 
 if __name__ == '__main__':
-    #coloca o endereo da imagem ali
-    acha_centro('caminho1.jpeg')
+    #coloca o endereço da imagem ali]
+    
+    filepath = "/home/gabs/inclinado.mp4"
+    video = cv2.VideoCapture(filepath)
+
+    while video.isOpened():
+        success, frame = video.read()
+        image, centro = acha_centro(frame)
+        print("Centro = ", centro)
+        cv2.imshow("Result", image)
+
+        if cv2.waitKey(5) & 0xFF == 27:        
+            break
+
+    #filepath = "/home/gabs/skyrats_ws/src/IMAV2022Indoor/scripts/img/caminho2.jpeg"
+    #image = cv2.imread(filepath)
+    #image, center = acha_centro(image)
