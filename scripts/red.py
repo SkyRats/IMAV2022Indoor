@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-img_raw = cv2.imread('placa.png')
+img_raw = cv2.imread('placa3.png')
 img = cv2.cvtColor(img_raw, cv2.COLOR_BGR2HSV)
 mask = cv2.inRange(img , (0, 176, 144), (17, 255, 255))
 kernel = np.ones((15, 15), np.uint8)

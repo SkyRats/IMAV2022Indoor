@@ -10,29 +10,30 @@ class Sensors():
     def __init__(self):
         self.rate = rospy.Rate(60)
         self.co2_pub = rospy.Publisher( '/jonas/CO2', Int64, queue_size = 15,  latch=True)
-        self.sonar_pub = rospy.Publisher( '/jonas/sonar', Float32, queue_size = 15,  latch=True)
-        self.temperature_pub = rospy.Publisher( '/jonas/temperature', Float32, queue_size = 15,  latch=True)  
+        self.sonar_pub = rospy.Publisher( '/jonas/sonar', Int64, queue_size = 15,  latch=True)
+        self.temp_pub = rospy.Publisher( '/jonas/temperature', Int64, queue_size = 15,  latch=True)  
         time.sleep(2)
         print("setup done")
 
     def run(self):
-        co2 = Int64()
-        temp = Int64()
-        dist = Int64()
         ser = serial.Serial('/dev/ttyUSB0') 
         pattern = r'[0-9]'
         while not rospy.is_shutdown():
-            linha = str(ser.readline())
-            if   (linha[2] == "D"): #DISTANCIA
+	    linha = str(ser.readline())
+            if   (linha[0] == "D"): #DISTANCIA
+		d = Int64()
                 d = convert(re.findall(pattern, linha))
                 self.sonar_pub.publish(d)
-            elif (linha[2] == "C"): #CO2
+            elif (linha[0] == "C"): #CO2
+		c = Int64()
                 c = convert(re.findall(pattern, linha))
+		print("   c =  " + str(c))
                 self.co2_pub.publish(c)
-            elif (linha[2] == "T"): #TEMPERATURA
+            elif (linha[0] == "T"): #TEMPERATURA
+		t = Int64()
                 t = convert(re.findall(pattern, linha))
                 self.temp_pub.publish(t)
-            rospy.sleep()   
+	       #rospy.sleep(1)   
         ser.close()
 
 def convert(list):

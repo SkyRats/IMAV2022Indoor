@@ -4,6 +4,7 @@ import math
 from std_msgs.msg import Empty
 from std_msgs.msg import Float32
 from std_msgs.msg import Int64
+from std_msgs.msg import Bool
 
 from std_msgs.msg import String
 from tf2_msgs.msg import TFMessage
@@ -27,6 +28,8 @@ FIRST_GOING =2
 ROW_DISTANCE = 2.8
 ROW_WIDTH = 6
 ROWS = 12
+vel_max_y = 0.05
+vel_max_x = 0.05
 
 class Bebopbase():
 
@@ -41,13 +44,13 @@ class Bebopbase():
         self.kill_pub = rospy.Publisher( '/' + namespace + '/reset', Empty, queue_size = 50,  latch=True)
         self.vel_pub = rospy.Publisher( '/' + namespace + '/cmd_vel', Twist, queue_size = 50, latch=True)
         self.camera_pub = rospy.Publisher( '/' + namespace + '/camera_control', Twist, queue_size = 50,  latch=True)
+        self.mission_pub = rospy.Publisher( '/trajectory/finish', Bool, queue_size = 5,  latch=True)
+
         self.quantidade_fotos = 0
 
         self.local_sub = rospy.Subscriber('/bebop/odom', Odometry, self.local_callback)
         self.camera_sub = rospy.Subscriber('/bebop/image_raw', Image, self.image_callback)
         self.sonar_sub = rospy.Subscriber('/jonas/sonar', Float32, self.sonar_callback)
-        self.temperature_sub = rospy.Subscriber('/jonas/temperature', Float32, self.temperature_callback)
-        self.co2_sub = rospy.Subscriber('/jonas/CO2', Int64, self.co2_callback)
 
         self.local_cam_sub = rospy.Subscriber('/orb_sl2_mono/pose', PoseStamped, self.local_callback)
 
@@ -64,21 +67,10 @@ class Bebopbase():
     def sonar_callback(self, data):
         self.sonar = data
 
-    def local_cam_sub(self, data):
-        self.correct_pose_x = self.Pose.Point.x
-        self.correct_pose_y = self.Pose.Point.y
-        self.correct_pose_z = self.Pose.Point.z
-
-
-    def co2_callback(self, data):
-        self.co2 = data  
-
-    def temperature_callback(self, data):
-        self.temperature = data
-
     def local_callback(self, data):
-        pass
-        '''
+        self.pose = data
+
+    '''def local_callback(self, data):
         try:
             position,quaternion = self.listener.lookupTransform('/base_link', '/odom', rospy.Time(0))
             self.pose = np.multiply(-1,position)
@@ -313,80 +305,104 @@ class Bebopbase():
         self.retas_completas = (ROWS - 2)/2 #O "-2" ESTA AI PQ DUAS COLUNAS SAO INDIVIDUAIS
         
         for i in range(int(self.retas_completas)):
-            #RED MISSION ACIONA A CENTRALIZACAO NO VERMELHO
-            if (RED_MISSION == 1):
+            for j in range(2):
+                #RED MISSION ACIONA A CENTRALIZACAO NO VERMELHO
+                if (RED_MISSION == 1):
 
-                self.align = 0 #DEFINE COMO DESCENTRALIZADO
-                #self.camera_control(0, 0) #VIRA A CAMERA PARA FRENTE
-                #rospy.sleep(5)
+                    self.align = 0 #DEFINE COMO DESCENTRALIZADO
+                    #self.camera_control(0, 0) #VIRA A CAMERA PARA FRENTE
+                    #rospy.sleep(5)
 
-                while(self.align == 0) and not rospy.is_shutdown(): #ENQUANTO NAO ESTIVER CENTRALIZADO
-                    print("Centralizando no vermelho")
-                    x_goal = self.center_red() #ENCONTRA O CENTRO DO VERMELHO
+                    while(self.align == 0) and not rospy.is_shutdown(): #ENQUANTO NAO ESTIVER CENTRALIZADO
+                        print("Centralizando no vermelho")
+                        x_goal = self.center_red() #ENCONTRA O CENTRO DO VERMELHO
 
-                    print("PID")
-                    self.camera_pid(x_goal, 1)# 1 POIS O DRONE ESTA OLHANDO PARA A ESQUERDA
+                        print("PID")
+                        if j == 0:
+                            self.camera_pid(x_goal, 1)# 1 POIS O DRONE ESTA OLHANDO PARA A ESQUERDA
+                        elif j == 1:
+                            self.camera_pid(x_goal, -1)# -1 POIS O DRONE ESTA OLHANDO PARA A DIREITA
+                        else:
+                            print("Impossivel")
+                            self.align = 1
+                    self.set_vel(0, 0, 0, 0)
 
+                    #self.camera_control(0, -90) #VIRA A CAMERA PARA BAIXO
+                    #rospy.sleep(5)
+
+                current_y = self.correct_pose_y
+
+                  
+                vel_max_x = 0.08
+                vel_max_y = 0.05
+                PID = 0.0002
+
+
+                while not rospy.is_shutdown() and abs(self.sonar - 2) > 0.5:
+                    self.centro_camera = int(self.width/2)
+                    centro_linha = self.acha_centro()
+                    delta_y =  self.centro_camera - centro_linha
+
+                    vel_y = PID * delta_y
+
+                    if abs(vel_y) > vel_max_y:
+                        if vel_y > vel_max_y:
+                            vel_y = vel_max_y
+                        else: 
+                            vel_y = vel_max_y
+                                
+                        print("( " + str(self.correct_pose_x) + " , " +  str(self.correct_pose_y) + " )")
+                        #print("vel_x = " + str(vel_x))
+                        #print("vel_y = " + str(vel_y))
+
+                    self.set_vel(vel_max_x, vel_y, 0,0)
+                    self.rate.sleep()
+
+                print("position_atual = " + str(self.correct_pose_x) + " , " +  str(self.correct_pose_y) )
+                
                 self.set_vel(0, 0, 0, 0)
 
-                #self.camera_control(0, -90) #VIRA A CAMERA PARA BAIXO
-                #rospy.sleep(5)
+                current_x = self.correct_pose_x
+                current_y = self.correct_pose_y
 
-            current_y = self.correct_pose_y
+                if j == 0:
+                    self.set_yaw(TRAZ)
+                elif j == 1:
+                    self.set_yaw(FRENTE)
 
-            while not rospy.is_shutdown() and abs(self.sonar - 6) > 0.5: 
-                self.set_vel(0.03, 0, 0, 0)
+                self.set_position(current_x, current_y, HEIGHT)
             
-            self.set_vel(0, 0, 0, 0)
+                while not rospy.is_shutdown() and abs(self.correct_pose_x - 0) > 0.1 :
+                    self.centro_camera = int(self.width/2)
+                    centro_linha = self.acha_centro()
+                    delta_y =  self.centro_camera - centro_linha
 
-            current_x = self.correct_pose_x
-            current_y = self.correct_pose_y
-         
-            self.set_yaw(TRAZ)
-            self.set_position(current_x, current_y, HEIGHT)
-         
-            while not rospy.is_shutdown() and abs(self.correct_pose_x - 0) > TOL :
-                print(self.correct_pose_x)
-                self.set_vel(0.03, 0, 0, 0)
+                    vel_y = PID * delta_y
 
-            #PERCORRER O LADO DIREITO
-            if (RED_MISSION == 1):
+                    if abs(vel_y) > vel_max_y:
+                        if vel_y > vel_max_y:
+                            vel_y = vel_max_y
+                        else: 
+                            vel_y = vel_max_y
+                                
+                        print("( " + str(self.correct_pose_x) + " , " +  str(self.correct_pose_y) + " )")
+                        #print("vel_x = " + str(vel_x))
+                        #print("vel_y = " + str(vel_y))
 
-                self.align = 0 #DEFINE COMO DESCENTRALIZADO
-                #self.camera_control(0, 0) 
-                #rospy.sleep(5)
+                    self.set_vel(vel_max_x, vel_y, 0,0)
+                    self.rate.sleep()
 
-                while(self.align == 0) and not rospy.is_shutdown():
-                    print("Centralizando no vermelho")
-                    x_goal = self.center_red()
-
-                    print("PID")
-                    self.camera_pid(x_goal, -1) # -1 POIS O DRONE ESTA OLHANDO PARA A DIREITA
-
+                print("position_atual = " + str(self.correct_pose_x) + " , " +  str(self.correct_pose_y) )
+                
                 self.set_vel(0, 0, 0, 0)
-
-                #self.camera_control(0, -90) #VIRA A CAMERA PARA BAIXO
-                #rospy.sleep(5)
-            
-            while not rospy.is_shutdown() and abs(self.sonar - 6) > 0.5 :
-                self.set_vel(0.03, 0, 0, 0)
-            
-            self.set_vel(0, 0, 0, 0)
-
-            current_x = self.correct_pose_x
-            current_y = self.correct_pose_y
-         
-            self.set_yaw(FRENTE)
-            self.set_position(current_x, current_y, HEIGHT)
-
-            while not rospy.is_shutdown() and abs(self.correct_pose_x - 0) > TOL :
-                print(self.correct_pose_x)
-                self.mav.set_vel(0.03, 0, 0, 0)
          
             if (i < self.retas_completas-1):
                 self.set_position(0, -(self.correct_pose_y + ROW_DISTANCE), HEIGHT)  #LOGICA: (x, y) --> (y, -x)
 
-            elif (i == self.retas_completas-1): #SE TIVER FEITO A ULTIMA COLUNA 
+            elif (i == self.retas_completas-1): #SE TIVER FEITO A ULTIMA COLUNA
+                booleano = Bool()
+                booleano = True
+                self.mission_pub.publish(booleano)
                 self.land()
             else: #NAO DEVERIA CONSEGUIR ENTRAR AQUI
                 print("???")
@@ -446,6 +462,13 @@ class Bebopbase():
 
         self.align = 0
 
+        if abs(vel_y) > vel_max_y:
+            if vel_y > vel_max_y:
+                vel_y = vel_max_y
+            else: 
+                vel_y = vel_max_y
+
+
         if abs(vel_y) < self.TOL:
             vel_y = 0.0
             self.row_y = self.mav.drone_pose.pose.position.y
@@ -481,3 +504,16 @@ if __name__ == "__main__":
     bebop.set_position(0,0,1)
     bebop.set_position(-1,0)    
     bebop.land()
+
+
+
+
+
+
+
+                  
+
+
+   
+
+
