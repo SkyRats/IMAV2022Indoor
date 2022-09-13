@@ -5,7 +5,6 @@ from std_msgs.msg import Empty
 from std_msgs.msg import Float32
 from std_msgs.msg import Bool
 
-from tf2_msgs.msg import TFMessage
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist, PoseStamped
 
@@ -50,7 +49,7 @@ class Bebopbase():
         self.camera_sub = rospy.Subscriber('/bebop/image_raw', Image, self.image_callback)
         self.sonar_sub = rospy.Subscriber('/jonas/sonar', Float32, self.sonar_callback)
 
-        self.mono_pose_sub = rospy.Subscriber('/orb_sl2_mono/pose', PoseStamped, self.mono_pose_callback)
+        self.mono_pose_sub = rospy.Subscriber('/orb_slam2_mono/pose', PoseStamped, self.mono_pose_callback)
 
         self.listener = tf.TransformListener() # position tf listener
 
