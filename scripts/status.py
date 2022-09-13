@@ -256,6 +256,8 @@ class Status():
                 self.save_disease(self.image, self.correct_pose_x, self.correct_pose_y)
                 self.disease == False
 
+            rospy.sleep(3)
+
         rospy.loginfo("All images saved!")
 
 if __name__ == '__main__':

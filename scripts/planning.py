@@ -103,7 +103,6 @@ if __name__ == '__main__':
         image, centro = acha_centro(frame)
         print("Centro = ", centro)
         cv2.imshow("Result", image)
-
         if cv2.waitKey(5) & 0xFF == 27:        
             break
 
