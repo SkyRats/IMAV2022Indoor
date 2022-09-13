@@ -3,13 +3,11 @@ import rospy
 import math 
 from std_msgs.msg import Empty
 from std_msgs.msg import Float32
-from std_msgs.msg import Int64
 from std_msgs.msg import Bool
 
-from std_msgs.msg import String
 from tf2_msgs.msg import TFMessage
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Twist, TransformStamped, PoseStamped
+from geometry_msgs.msg import Twist, PoseStamped
 
 from nav_msgs.msg import Odometry
 import tf
@@ -57,12 +55,10 @@ class Bebopbase():
         self.listener = tf.TransformListener() # position tf listener
 
         rospy.sleep(3.)
-        rospy.wait_for_message('/bebop/odom', Odometry)
         rospy.wait_for_message("/bebop/image_raw", Image)
         self.width = 856
         self.height = 480
 
-        self.direction = "FRENTE"
 
     def sonar_callback(self, data):
         self.sonar = data
