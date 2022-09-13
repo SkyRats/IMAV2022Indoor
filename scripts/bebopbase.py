@@ -12,7 +12,9 @@ from nav_msgs.msg import Odometry
 import tf
 import numpy as np
 import cv2
-from cv_bridge import CvBridge
+from cv_bridge import CvBridge]
+import time
+
 RED_MISSION = 1
 
 PI = math.pi
@@ -97,7 +99,6 @@ class Bebopbase():
         self.takeoff_pub.publish(self.empty)
         
         rospy.sleep(5.)
-        print(self.yaw)
 
     def land(self):
         rospy.loginfo("Land")
@@ -119,9 +120,6 @@ class Bebopbase():
         vel_cam.angular.y = vertical
         vel_cam.angular.z = horizontal
         self.camera_pub.publish(vel_cam)
-
-    def set_position_teste(self, x, y, z, TOL=0.2):
-
 
     def set_position(self, x, y, z, tolerance= 0.2):
         VEL_MAX_Z = 0.2
@@ -449,11 +447,16 @@ if __name__ == "__main__":
     
     bebop.takeoff()
     rospy.sleep(2)
+    rospy.loginfo("Takeoff finalizado!")
 
     rospy.loginfo("Indo para o lado")
-    bebop.set_position(0,0.5,1)
+    bebop.set_vel(0, 0.5, 0, 0)
+    timeout = time.time() + 1
 
+    bebop.set_vel(0, 0, 0, 0)
     rospy.sleep(2)
+    rospy.loginfo("Andei para o lado")
+
     #bebop.set_yaw(TRAZ)
     #bebop.set_position(0,0,1)
     #bebop.set_position(-1,0)    
