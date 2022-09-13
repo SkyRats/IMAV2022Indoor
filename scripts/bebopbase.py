@@ -85,7 +85,6 @@ class Bebopbase():
         self.cv_image = self.bridge_object.imgmsg_to_cv2(data,desired_encoding="bgr8") 
 
     def mono_pose_callback(self, data):
-        rospy.logwarn(self.mono_pose)
         self.mono_pose = data
         orientation_q = data.pose.orientation
         orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
@@ -120,6 +119,9 @@ class Bebopbase():
         vel_cam.angular.y = vertical
         vel_cam.angular.z = horizontal
         self.camera_pub.publish(vel_cam)
+
+    def set_position_teste(self, x, y, z, TOL=0.2):
+
 
     def set_position(self, x, y, z, tolerance= 0.2):
         VEL_MAX_Z = 0.2
@@ -444,14 +446,16 @@ class Bebopbase():
 if __name__ == "__main__":
     rospy.init_node('bebopbase')
     bebop = Bebopbase()
-    while not rospy.is_shutdown():
-        print(bebop.mono_pose)
-        #bebop.ultrateste()
-        rospy.sleep(2)
+    
+    bebop.takeoff()
+    rospy.sleep(2)
 
-    #bebop.takeoff()
-    #bebop.set_position(1,0,1)
+    rospy.loginfo("Indo para o lado")
+    bebop.set_position(0,0.5,1)
+
+    rospy.sleep(2)
     #bebop.set_yaw(TRAZ)
     #bebop.set_position(0,0,1)
     #bebop.set_position(-1,0)    
-    #bebop.land()
+    rospy.loginfo("Pousando")
+    bebop.land()
