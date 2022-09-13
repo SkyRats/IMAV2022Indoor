@@ -62,11 +62,11 @@ class Bebopbase():
 
     def sonar_callback(self, data):
         self.sonar = data
-
+    
     def local_callback(self, data):
         self.pose = data
-
-    '''def local_callback(self, data):
+    '''
+    def local_callback(self, data):
         try:
             position,quaternion = self.listener.lookupTransform('/base_link', '/odom', rospy.Time(0))
             self.pose = np.multiply(-1,position)
@@ -80,13 +80,17 @@ class Bebopbase():
 
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             pass 
-        '''
+    '''
     def image_callback(self, data):
         self.image = data
         self.cv_image = self.bridge_object.imgmsg_to_cv2(data,desired_encoding="bgr8") 
 
     def mono_pose_callback(self, data):
+        rospy.logwarn(self.mono_pose)
         self.mono_pose = data
+        orientation_q = data.pose.orientation
+        orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
+        [_,_,self.yaw] = tf.transformations.euler_from_quaternion(orientation_list)
 
     def takeoff(self):
         self.initial_yaw = self.yaw
@@ -248,7 +252,7 @@ class Bebopbase():
         #SOBE PARA A ALTURA DESEJADA
         self.set_position(0, 0, HEIGHT)
 
-        #VAI PARA FRENTE ATÉ O PRIMEIRO CORREDOR
+        #VAI PARA FRENTE ATE O PRIMEIRO CORREDOR
         self.set_position(0.85, 0, HEIGHT)
 
         #DEFINE O NUMERO DE RETAS QUE VAO DE ESQUERDA A DIREITA
@@ -441,11 +445,14 @@ class Bebopbase():
 if __name__ == "__main__":
     rospy.init_node('bebopbase')
     bebop = Bebopbase()
-    #bebop.ultrateste()
+    while not rospy.is_shutdown():
+        print(bebop.mono_pose)
+        #bebop.ultrateste()
+        rospy.sleep(2)
 
-    bebop.takeoff()
-    bebop.set_position(1,0,1)
-    bebop.set_yaw(TRAZ)
-    bebop.set_position(0,0,1)
-    bebop.set_position(-1,0)    
-    bebop.land()
+    #bebop.takeoff()
+    #bebop.set_position(1,0,1)
+    #bebop.set_yaw(TRAZ)
+    #bebop.set_position(0,0,1)
+    #bebop.set_position(-1,0)    
+    #bebop.land()
