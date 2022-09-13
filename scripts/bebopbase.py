@@ -135,8 +135,8 @@ class Bebopbase():
         integral_prior_z = 0
         error_prior_z = 0
         self.iteration_time = 1.0/60
-        while z - self.pose[2] > tolerance*2 and not rospy.is_shutdown():
-            delta_z =  float(z - self.pose[2] )
+        while z - self.mono_pose.pose.position.z > tolerance*2 and not rospy.is_shutdown():
+            delta_z =  float(z - self.mono_pose.pose.position.z )
             integral_z = integral_prior_z + delta_z * self.iteration_time
             derivative_z = (delta_z - error_prior_z) / self.iteration_time
             vel_z = self.P * delta_z + self.I * integral_z + self.D * derivative_z 
@@ -162,8 +162,8 @@ class Bebopbase():
 
            
             cont_loops = cont_loops + 1
-            delta_x =  float(x - self.correct_pose_x)
-            delta_y =  float(y - self.correct_pose_y )
+            delta_x =  float(x - self.mono_pose.pose.position.x)
+            delta_y =  float(y - self.mono_pose.pose.position.y)
 
             integral_x = integral_prior_x + delta_x * self.iteration_time
             derivative_x = (delta_x - error_prior_x) / self.iteration_time
