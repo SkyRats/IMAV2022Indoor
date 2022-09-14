@@ -51,11 +51,11 @@ class CSVconverter:
         return("1")
 class Main:
     def Main(self):
-        a = CCS().retornaValorCO2()
+        #a = CCS().retornaValorCO2()
         b,c = US100().medicaoUS100()
         print("Distance: ", b)
         print("Temperature: ", c)
-        print("CO2: ", a)
+        #print("CO2: ", a)
         #z = CSVconverter().__init__(self,a,b,c)
 while True:
     #CCS().start()

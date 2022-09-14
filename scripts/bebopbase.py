@@ -37,7 +37,7 @@ class Bebopbase():
         self.rate = rospy.Rate(self.Hz)
         self.empty = Empty()
         self.bridge_object = CvBridge()
-        self.takeoff_pub = rospy.Publisher('/bebop/takeoff', Empty, queue_size = 5, latch=True)
+        self.takeoff_pub = rospy.Publisher('/bebop/takeoff', Empty, queue_size = 10, latch=True)
         self.land_pub = rospy.Publisher( '/' + namespace + '/land', Empty, queue_size = 50, latch=True)
         self.kill_pub = rospy.Publisher( '/' + namespace + '/reset', Empty, queue_size = 50,  latch=True)
         self.vel_pub = rospy.Publisher( '/' + namespace + '/cmd_vel', Twist, queue_size = 50, latch=True)
@@ -116,7 +116,7 @@ class Bebopbase():
 
     def set_position(self, x, y, z, tolerance= 0.2):
         VEL_MAX_Z = 0.2
-        VEL_MAX = 0.08
+        VEL_MAX = 0.075
 
         self.P = 0.05 
         self.I = 0.0035
@@ -461,11 +461,21 @@ if __name__ == "__main__":
     rospy.loginfo("Takeoff finalizado!")
 
     rospy.sleep(2)
-    rospy.loginfo("Indo para tras")
 
-    bebop.set_position(-1, 0, 1)
-    rospy.sleep(2)
-    rospy.loginfo("Andei para tras")
+    i = 0
+    while i < 8:
+        rospy.loginfo("Indo para tras")
+
+        bebop.set_position(-1, 0, 1)
+        rospy.sleep(2)
+        rospy.loginfo("Andei para tras")
+
+        rospy.loginfo("Indo para frente")
+        bebop.set_position(0, 0, 1)
+        rospy.sleep(2)
+        rospy.loginfo("Andei para frente")
+
+        i += 1
 
     #bebop.set_yaw(TRAZ)
     #bebop.set_position(0,0,1)
