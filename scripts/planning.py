@@ -11,6 +11,7 @@ def region_of_interest(img, vertices):
 
     return masked_image
 
+
 def draw_the_lines(img, lines):
     img = np.copy(img)
     blank_image = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
@@ -38,14 +39,11 @@ def mask_green(image):
 
 def acha_centro(image):
 
-    #cv2.imshow(image)
-
-    # define the region of interest - bottom triangle
     height = image.shape[0]
     width = image.shape[1]
     region_of_interest_vertices = [
         (0, height),
-        (width/2, height/2),
+        (width/2, 0),
         (width, height)
     ]
 
@@ -53,21 +51,26 @@ def acha_centro(image):
     #image_green = mask_green(image)
     #plt.imshow(image_green)
     #plt.show()
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    canny_image = cv2.Canny(gray_image, 100, 500)
+    #gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray_image = cv2.threshold(image,90,255,cv2.THRESH_BINARY_INV)[1]
+
+
+    canny_image = cv2.Canny(gray_image, 100, 200)
 
     # create the image with region of interest only
-    cropped_image = region_of_interest(canny_image, np.array([region_of_interest_vertices], np.int32),)
+    cropped_image = region_of_interest(canny_image, np.array([region_of_interest_vertices], np.int32))
+    cv2.imshow("Result", cropped_image)
+    cv2.waitKey(0)
 
     # lines
     lines = []
     lines = cv2.HoughLinesP(
         cropped_image,
         rho=1,
-        theta=np.pi/180,
+        theta=np.pi/360,
         threshold=100,
         lines=np.array([]),
-        minLineLength=100,
+        minLineLength=0,
         maxLineGap=10
     )
 
@@ -93,8 +96,7 @@ def acha_centro(image):
     return image_lines, centro
 
 if __name__ == '__main__':
-    #coloca o endereço da imagem ali]
-    
+    '''    
     filepath = "/home/gabs/inclinado.mp4"
     video = cv2.VideoCapture(filepath)
 
@@ -104,8 +106,21 @@ if __name__ == '__main__':
         print("Centro = ", centro)
         cv2.imshow("Result", image)
         if cv2.waitKey(5) & 0xFF == 27:        
-            break
+            break'''
 
     #filepath = "/home/gabs/skyrats_ws/src/IMAV2022Indoor/scripts/img/caminho2.jpeg"
-    #image = cv2.imread(filepath)
-    #image, center = acha_centro(image)
+    image = cv2.imread("bebop.jpg")
+    image = cv2.resize(image, (856, 480))                # Resize image
+    height = image.shape[0]
+    width = image.shape[1]
+    image = image[0:height, 0:width]
+
+    image = image[height/4:height-height/3, width/4:width-width/4]
+
+    cv2.imshow("Result", image)
+    cv2.waitKey(0)
+    image, center = acha_centro(image) 
+    print("Centro = ", center)
+
+    cv2.imshow("Result", image)
+    cv2.waitKey(0)

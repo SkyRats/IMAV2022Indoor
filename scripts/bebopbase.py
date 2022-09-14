@@ -449,34 +449,29 @@ class Bebopbase():
 if __name__ == "__main__":
     rospy.init_node('bebopbase')
     bebop = Bebopbase()
-
-    print("Pose X", bebop.mono_pose.pose.position.x)
-    print("Pose Y", bebop.mono_pose.pose.position.y)
-    print("Pose Z", bebop.mono_pose.pose.position.z)
     
     bebop.takeoff()
     rospy.loginfo("Takeoff finalizado!")
 
     rospy.sleep(2)
-    print("Pose X", bebop.mono_pose.pose.position.x)
-    print("Pose Y", bebop.mono_pose.pose.position.y)
-    print("Pose Z", bebop.mono_pose.pose.position.z)
 
-    timeout = time.time() + 3
-    while time.time() < timeout:
-        bebop.set_vel(-0.08, 0, 0, 0)
-
+    bebop.set_position(12, 0, 1)
     rospy.loginfo("Cheguei")
-    print("Pose X", bebop.mono_pose.pose.position.x)
-    print("Pose Y", bebop.mono_pose.pose.position.y)
-    print("Pose Z", bebop.mono_pose.pose.position.z)
     
-    bebop.set_vel(0, 0, 0, 0)
+    #bebop.set_vel(0, 0, 0, 0)
     rospy.sleep(2)
-    rospy.loginfo("Andei para tras")
 
-    #bebop.set_yaw(TRAZ)
-    #bebop.set_position(0,0,1)
-    #bebop.set_position(-1,0)    
+    bebop.set_position(1, 0, 1)
+    rospy.loginfo("Cheguei")
+    
+    #bebop.set_vel(0, 0, 0, 0)
+    rospy.sleep(2)
+
+    trajectory = Bool()
+    trajectory = True
+
+    bebop.mission_pub.publish(trajectory)
+    rospy.loginfo("Fim da trajetoria")
+
     rospy.loginfo("Pousando")
     bebop.land()

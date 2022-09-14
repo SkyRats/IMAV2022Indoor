@@ -15,10 +15,11 @@ import pandas as pd
 import csv
 import tf
 
-from genericpath import sameopenfile
-from random import sample
-import cv2
-import os
+#from genericpath import sameopenfile
+#from random import sample
+#import cv2
+#import os
+import io
 
 MIN_GREEN = (35, 64, 70)
 MAX_GREEN = (80, 255, 231)
@@ -37,11 +38,13 @@ class Status():
         self.trajectory_sub = rospy.Subscriber('/trajectory/finish', Bool, self.trajectory_callback)
 
         self.trajectory = 0
-        self.video = cv2.VideoCapture("/home/gabs/inclinado.mp4")
-        self.image = cv2.imread("/home/gabs/skyrats_ws/src/IMAV2022Indoor/scripts/planta.png")
+        #self.video = cv2.VideoCapture("/home/gabs/inclinado.mp4")
+        #self.image = cv2.imread("/home/gabs/skyrats_ws/src/IMAV2022Indoor/scripts/planta.png")
 
         self.photos = 0
         self.disease = False
+
+        self.listener = tf.TransformListener() # position tf listener
 
         rospy.sleep(5)
         rospy.loginfo("Object Map() created!")
@@ -83,7 +86,7 @@ class Status():
         #create CSV file with titles
 
         header = ["PoseX", "PoseY", "CO2", "Temperature"]
-        with open('/home/gabiyuri/skyrats_ws2/src/indoor22/auto.csv', 'w', encoding='UTF8') as f:
+        with io.open('/home/gabiyuri/skyrats_ws2/src/IMAV2022Indoor/auto.csv', 'w', encoding='UTF8') as f:
             writer = csv.writer(f)
             writer.writerow(header)
 
@@ -94,7 +97,7 @@ class Status():
         #save data to the CSV file
 
         data = [self.correct_pose_x, self.correct_pose_y, self.co2, self.temp]
-        with open('/home/gabiyuri/skyrats_ws2/src/indoor22/auto.csv', 'a', encoding='UTF8') as f:
+        with io.open('/home/skyrats/skyrats_ws2/src/IMAV2022Indoor/auto.csv', 'a', encoding='UTF8') as f:
             writer = csv.writer(f)
             writer.writerow(data)
         return("1")
@@ -107,7 +110,7 @@ class Status():
         ax = fig.add_subplot(1, 2, 1, projection='3d')
 
         columnsCO2 = ["PoseX", "PoseY", "CO2", "Temperature"]
-        df = pd.read_csv("/home/gabiyuri/skyrats_ws2/src/indoor22/auto.csv", usecols=columnsCO2)
+        df = pd.read_csv("/home/skyrats/skyrats_ws2/src/IMAV2022Indoor/auto.csv", usecols=columnsCO2)
         print("Contents in csv file:\n", df)
 
         ax.plot_trisurf(df.PoseX, df.PoseY, df.CO2, cmap='viridis')
@@ -126,7 +129,7 @@ class Status():
 
 
     ###################################### Disease Detection ######################################## 
-
+    '''
     def cropImage(self, image):
         #Split an image 1920x1080 in 6 pieces  960x540
         croppedImage = []
@@ -230,9 +233,9 @@ class Status():
         rospy.loginfo("Disease spoted and saved!")
         return("1")
 
-
+    '''
     ###################################### Photo Mapping ######################################## 
-
+    '''
     def save_image(self, frame):
         self.photos += 1
 
@@ -241,7 +244,7 @@ class Status():
 
         cv2.imwrite(os.path.join(path, name), frame)
         return("1")
-
+    '''
 
     #################################### Analize periodicaly ###################################### 
 
@@ -249,16 +252,16 @@ class Status():
         self.createCSV()
         while not self.trajectory:
             self.addtoCSV()
-            success, self.image = video.read()
-            self.save_image(self.image)
+            #success, self.image = self.video.read()
+            #self.save_image(self.image)
+            #
+            #if self.disease == True:
+            #    self.save_disease(self.image, self.correct_pose_x, self.correct_pose_y)
+            #    self.disease == False
 
-            if self.disease == True:
-                self.save_disease(self.image, self.correct_pose_x, self.correct_pose_y)
-                self.disease == False
+            rospy.sleep(0.5)
 
-            rospy.sleep(3)
-
-        rospy.loginfo("All images saved!")
+        #rospy.loginfo("All images saved!")
 
 if __name__ == '__main__':
     rospy.init_node("status")
