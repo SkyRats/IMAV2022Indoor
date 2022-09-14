@@ -87,7 +87,7 @@ class Bebopbase():
         self.cv_image = self.bridge_object.imgmsg_to_cv2(data,desired_encoding="bgr8") 
 
     def mono_pose_callback(self, data):
-        self.mono_pose = data
+        self.mono_pose = data.pose.position
         orientation_q = data.pose.orientation
         orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
         [_,_,self.yaw] = tf.transformations.euler_from_quaternion(orientation_list)
@@ -121,7 +121,10 @@ class Bebopbase():
         vel_cam.angular.z = horizontal
         self.camera_pub.publish(vel_cam)
 
-    def set_position(self, x, y, z, tolerance= 0.2):
+    #def set_position_orb(self, x, y, z):
+
+
+    def set_position(self, x, y, z, TOL= 0.2):
         VEL_MAX_Z = 0.2
         VEL_MAX = 0.08
 
@@ -138,8 +141,9 @@ class Bebopbase():
         integral_prior_z = 0
         error_prior_z = 0
         self.iteration_time = 1.0/60
-        while z - self.mono_pose.pose.position.z > tolerance*2 and not rospy.is_shutdown():
-            delta_z =  float(z - self.mono_pose.pose.position.z )
+
+        while z - self.mono_pose.z > TOL*2 and not rospy.is_shutdown():
+            delta_z =  float(z - self.mono_pose.z)
             integral_z = integral_prior_z + delta_z * self.iteration_time
             derivative_z = (delta_z - error_prior_z) / self.iteration_time
             vel_z = self.P * delta_z + self.I * integral_z + self.D * derivative_z 
@@ -155,18 +159,18 @@ class Bebopbase():
             self.set_vel(0, 0, vel_z, 0)
             self.rate.sleep()
 
-
         self.set_vel(0, 0, 0, 0)
+        self.rate.sleep()
+
         cont_loops = 0
         ultimo_contador = 0
         self.iteration_time = 1.0/60
 
-        while np.sqrt((x - self.mono_pose.pose.position.x)**2 + (y -self.mono_pose.pose.position.y)**2)  > tolerance and not rospy.is_shutdown():
+        while np.sqrt((x - self.mono_pose.x)**2 + (y -self.mono_pose.y)**2)  > TOL and not rospy.is_shutdown():
 
-           
             cont_loops = cont_loops + 1
-            delta_x =  float(x - self.mono_pose.pose.position.x)
-            delta_y =  float(y - self.mono_pose.pose.position.y)
+            delta_x =  float(x - self.mono_pose.x)
+            delta_y =  float(y - self.mono_pose.y)
 
             integral_x = integral_prior_x + delta_x * self.iteration_time
             derivative_x = (delta_x - error_prior_x) / self.iteration_time
@@ -210,14 +214,15 @@ class Bebopbase():
                         vel_y = -VEL_MAX
                         
 
-                print("( " + str(self.mono_pose.pose.position.x) + " , " +  str(self.mono_pose.pose.position.y) + " )")
+                print("( " + str(self.mono_pose.x) + " , " +  str(self.mono_pose.y) + " )")
                 #print("vel_x = " + str(vel_x))
                 #print("vel_y = " + str(vel_y))
             self.rate.sleep()
-
             self.set_vel(vel_x, vel_y, 0,0)
-        print("position_atual = " + str(self.mono_pose.pose.position.x) + " , " +  str(self.mono_pose.pose.position.y) )
+
+        print("position_atual = " + str(self.mono_pose.x) + " , " +  str(self.mono_pose.y) )
         self.set_vel(0, 0, 0, 0)
+        self.rate.sleep()
 
     def set_yaw(self, desired_yaw, tolerance=0.03):
         P = desired_yaw - self.yaw
@@ -229,7 +234,7 @@ class Bebopbase():
         while abs(P) >= tolerance and not rospy.is_shutdown():
             self.yaw_atual = self.yaw
             if self.yaw_antigo - self.yaw_atual == 0:
-                bebop.set_vel(0.0,0.0,0.0,0.3*P)
+                bebop.set_vel(0.0, 0.0, 0.0, 0.3*P)
                 P = desired_yaw - self.yaw
                 if(P  > PI):
                     P = -2*PI + P
@@ -286,7 +291,7 @@ class Bebopbase():
                     #self.camera_control(0, -90) #VIRA A CAMERA PARA BAIXO
                     #rospy.sleep(5)
 
-                current_y = self.mono_pose.pose.position.y
+                current_y = self.mono_pose.y
                   
                 vel_max_x = 0.08
                 vel_max_y = 0.05
@@ -305,19 +310,19 @@ class Bebopbase():
                         else: 
                             vel_y = vel_max_y
                                 
-                        print("( " + str(self.mono_pose.pose.position.x) + " , " +  str(self.mono_pose.pose.position.y) + " )")
+                        print("( " + str(self.mono_pose.x) + " , " +  str(self.mono_pose.y) + " )")
                         #print("vel_x = " + str(vel_x))
                         #print("vel_y = " + str(vel_y))
 
                     self.set_vel(vel_max_x, vel_y, 0,0)
                     self.rate.sleep()
 
-                print("position_atual = " + str(self.mono_pose.pose.position.x) + " , " +  str(self.mono_pose.pose.position.y))
+                print("position_atual = " + str(self.mono_pose.x) + " , " +  str(self.mono_pose.y))
                 
                 self.set_vel(0, 0, 0, 0)
 
-                current_x = self.mono_pose.pose.position.x
-                current_y = self.mono_pose.pose.position.y
+                current_x = self.mono_pose.x
+                current_y = self.mono_pose.y
 
                 if j == 0:
                     self.set_yaw(TRAZ)
@@ -326,7 +331,7 @@ class Bebopbase():
 
                 self.set_position(current_x, current_y, HEIGHT)
             
-                while not rospy.is_shutdown() and abs(self.mono_pose.pose.position.x - 0) > 0.1 :
+                while not rospy.is_shutdown() and abs(self.mono_pose.x - 0) > 0.1 :
                     self.centro_camera = int(self.width/2)
                     centro_linha = self.acha_centro()
                     delta_y =  self.centro_camera - centro_linha
@@ -339,19 +344,19 @@ class Bebopbase():
                         else: 
                             vel_y = vel_max_y
                                 
-                        print("( " + str(self.mono_pose.pose.position.x) + " , " +  str(self.mono_pose.pose.position.y) + " )")
+                        print("( " + str(self.mono_pose.x) + " , " +  str(self.mono_pose.y) + " )")
                         #print("vel_x = " + str(vel_x))
                         #print("vel_y = " + str(vel_y))
 
                     self.set_vel(vel_max_x, vel_y, 0,0)
                     self.rate.sleep()
 
-                print("position_atual = " + str(self.mono_pose.pose.position.x) + " , " +  str(self.mono_pose.pose.position.y) )
+                print("position_atual = " + str(self.mono_pose.x) + " , " +  str(self.mono_pose.y) )
                 
                 self.set_vel(0, 0, 0, 0)
          
             if (i < self.retas_completas-1):
-                self.set_position(0, -(self.mono_pose.pose.position.y + ROW_DISTANCE), HEIGHT)  #LOGICA: (x, y) --> (y, -x)
+                self.set_position(0, -(self.mono_pose.y + ROW_DISTANCE), HEIGHT)  #LOGICA: (x, y) --> (y, -x)
 
             elif (i == self.retas_completas-1): #SE TIVER FEITO A ULTIMA COLUNA
                 booleano = Bool()
