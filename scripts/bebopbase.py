@@ -14,6 +14,8 @@ import tf
 import numpy as np
 import cv2
 from cv_bridge import CvBridge
+import time
+
 RED_MISSION = 0
 
 PI = math.pi
@@ -43,7 +45,7 @@ class Bebopbase():
         self.quantidade_fotos = 0
 
         self.local_sub = rospy.Subscriber('/bebop/odom', Odometry, self.local_callback)
-        self.camera_sub = rospy.Subscriber('/bebop/image_raw', Image, self.image_callback)
+        #self.camera_sub = rospy.Subscriber('/bebop/image_raw', Image, self.image_callback)
         self.sonar_sub = rospy.Subscriber('/jonas/sonar', Float32, self.sonar_callback)
         self.temperature_sub = rospy.Subscriber('/jonas/temperature', Float32, self.temperature_callback)
         self.co2_sub = rospy.Subscriber('/jonas/CO2', Int64, self.co2_callback)
@@ -454,23 +456,19 @@ class Bebopbase():
 if __name__ == "__main__":
     rospy.init_node('bebopbase')
     bebop = Bebopbase()
-    #bebop.ultrateste()
-
+    
     bebop.takeoff()
+    rospy.loginfo("Takeoff finalizado!")
 
-    bebop.set_yaw(FRENTE)
-    print(bebop.yaw)
+    rospy.sleep(2)
+    rospy.loginfo("Indo para tras")
 
-    bebop.set_yaw(ESQUERDA)
-    print(bebop.yaw)
+    bebop.set_position(-1, 0, 1)
+    rospy.sleep(2)
+    rospy.loginfo("Andei para tras")
 
-    bebop.set_yaw(TRAZ)
-    print(bebop.yaw)
-    
-    bebop.set_yaw(DIREITA)   
-    print(bebop.yaw)
-    
-    bebop.set_yaw(FRENTE)
-    print(bebop.yaw)
-
+    #bebop.set_yaw(TRAZ)
+    #bebop.set_position(0,0,1)
+    #bebop.set_position(-1,0)    
+    rospy.loginfo("Pousando")
     bebop.land()
