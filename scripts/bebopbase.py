@@ -12,7 +12,7 @@ from nav_msgs.msg import Odometry
 import tf
 import numpy as np
 import cv2
-from cv_bridge import CvBridge]
+from cv_bridge import CvBridge
 import time
 
 RED_MISSION = 1
@@ -444,18 +444,31 @@ class Bebopbase():
 if __name__ == "__main__":
     rospy.init_node('bebopbase')
     bebop = Bebopbase()
+
+    print("Pose X", bebop.mono_pose.pose.position.x)
+    print("Pose Y", bebop.mono_pose.pose.position.y)
+    print("Pose Z", bebop.mono_pose.pose.position.z)
     
     bebop.takeoff()
-    rospy.sleep(2)
     rospy.loginfo("Takeoff finalizado!")
 
-    rospy.loginfo("Indo para o lado")
-    bebop.set_vel(0, 0.5, 0, 0)
-    timeout = time.time() + 1
+    rospy.sleep(2)
+    print("Pose X", bebop.mono_pose.pose.position.x)
+    print("Pose Y", bebop.mono_pose.pose.position.y)
+    print("Pose Z", bebop.mono_pose.pose.position.z)
 
+    timeout = time.time() + 3
+    while time.time() < timeout:
+        bebop.set_vel(-0.08, 0, 0, 0)
+
+    rospy.loginfo("Cheguei")
+    print("Pose X", bebop.mono_pose.pose.position.x)
+    print("Pose Y", bebop.mono_pose.pose.position.y)
+    print("Pose Z", bebop.mono_pose.pose.position.z)
+    
     bebop.set_vel(0, 0, 0, 0)
     rospy.sleep(2)
-    rospy.loginfo("Andei para o lado")
+    rospy.loginfo("Andei para tras")
 
     #bebop.set_yaw(TRAZ)
     #bebop.set_position(0,0,1)
